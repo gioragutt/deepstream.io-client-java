@@ -74,7 +74,7 @@ public enum ConfigOptions {
      */
     RECORD_MERGE_STRATEGY("recordMergeStrategy");
 
-    private String configOption;
+    private final String configOption;
 
     @ObjectiveCName("init:")
     ConfigOptions(String topic) {

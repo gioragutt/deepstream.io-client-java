@@ -2,9 +2,6 @@ package io.deepstream.testapp;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
-import io.deepstream.*;
-import io.deepstream.EventListener;
-import io.deepstream.List;
 
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -20,7 +17,7 @@ public class Subscriber {
 
         SubscriberApplication() throws InvalidDeepstreamConfig {
             try {
-                Map config = new HashMap<String,Object>();
+                Map config = new HashMap<String, Object>();
                 config.put(ConfigOptions.SUBSCRIPTION_TIMEOUT.toString(), 500);
                 config.put(ConfigOptions.RECORD_READ_ACK_TIMEOUT.toString(), 500);
                 config.put(ConfigOptions.RECORD_READ_TIMEOUT.toString(), 500);
@@ -53,7 +50,7 @@ public class Subscriber {
 
         private void hasRecord(final DeepstreamClient client) {
             HasResult hasResult = client.record.has("record/has");
-            if(hasResult.hasError()) {
+            if (hasResult.hasError()) {
                 System.err.println(String.format("Has did not work because: %s", hasResult.getError().getMessage()));
             } else {
                 System.out.println(String.format("Has result: %s", hasResult.getResult()));
@@ -62,7 +59,7 @@ public class Subscriber {
 
         private void makeSnapshot(final DeepstreamClient client, final String recordName) {
             SnapshotResult snapshotResult = client.record.snapshot(recordName);
-            if(snapshotResult.hasError()) {
+            if (snapshotResult.hasError()) {
                 System.err.println(String.format("Snapshot did not work because: %s", snapshotResult.getError().getMessage()));
             } else {
                 System.out.println(String.format("Snapshot result: %s", snapshotResult.getData()));
@@ -134,14 +131,14 @@ public class Subscriber {
         }
 
         private void subscribeRecord(final DeepstreamClient client, final String recordName) {
-                    Record record = client.record.getRecord(recordName);
-                    record.subscribe(new RecordChangedCallback() {
-                        @Override
-                        public void onRecordChanged(String recordName, JsonElement data) {
-                            System.out.println(String.format("Record '%s' changed, data is now: %s", recordName, data));
-                        }
-                    });
-                    System.out.println(String.format("Record '%s' initial state: ", record.name(), record.get()));
+            Record record = client.record.getRecord(recordName);
+            record.subscribe(new RecordChangedCallback() {
+                @Override
+                public void onRecordChanged(String recordName, JsonElement data) {
+                    System.out.println(String.format("Record '%s' changed, data is now: %s", recordName, data));
+                }
+            });
+            System.out.println(String.format("Record '%s' initial state: ", record.name(), record.get()));
         }
 
         private void subscribeEvent(DeepstreamClient client) {

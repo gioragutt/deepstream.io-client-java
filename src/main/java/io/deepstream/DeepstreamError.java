@@ -10,7 +10,7 @@ import com.google.j2objc.annotations.ObjectiveCName;
  */
 public class DeepstreamError extends Exception {
 
-	@ObjectiveCName("init:")
+    @ObjectiveCName("init:")
     DeepstreamError(String error) {
         super(error);
     }

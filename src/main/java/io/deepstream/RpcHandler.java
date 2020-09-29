@@ -20,13 +20,13 @@ public class RpcHandler {
 
     /**
      * The main class for remote procedure calls
-     *
+     * <p>
      * Provides the rpc interface and handles incoming messages
      * on the rpc topic
      *
      * @param deepstreamConfig The deepstreamConfig the client was created with
-     * @param connection The connection to deepstream
-     * @param client The deepstream client
+     * @param connection       The connection to deepstream
+     * @param client           The deepstream client
      */
     @ObjectiveCName("init:connection:client:")
     RpcHandler(DeepstreamConfig deepstreamConfig, final IConnection connection, DeepstreamClientAbstract client) {
@@ -54,15 +54,15 @@ public class RpcHandler {
      * <br/>
      * Please note: Deepstream tries to deliver data in its original format. Data passed to
      * {@link RpcHandler#make(String, Object)} as a String will arrive as a String, numbers or
-     *  implicitly JSON serialized objects will arrive in their respective format as well.
+     * implicitly JSON serialized objects will arrive in their respective format as well.
      *
-     * @param rpcName The rpcName of the RPC to provide
+     * @param rpcName              The rpcName of the RPC to provide
      * @param rpcRequestedListener The listener to invoke when requests are received
      */
     @ObjectiveCName("provide:rpcRequestedListener:")
-    public void provide( String rpcName, RpcRequestedListener rpcRequestedListener ) {
-        if( this.providers.containsKey( rpcName ) ) {
-            throw new DeepstreamException( "RPC " + rpcName + " already registered" );
+    public void provide(String rpcName, RpcRequestedListener rpcRequestedListener) {
+        if (this.providers.containsKey(rpcName)) {
+            throw new DeepstreamException("RPC " + rpcName + " already registered");
         }
 
         synchronized (this) {
@@ -73,12 +73,13 @@ public class RpcHandler {
 
     /**
      * Unregister a {@link RpcRequestedListener} registered via Rpc{@link #provide(String, RpcRequestedListener)}
+     *
      * @param rpcName The rpcName of the RPC to stop providing
      */
     @ObjectiveCName("unprovide:")
-    public void unprovide( String rpcName ) {
-        if( this.providers.containsKey( rpcName ) ) {
-            this.providers.remove( rpcName );
+    public void unprovide(String rpcName) {
+        if (this.providers.containsKey(rpcName)) {
+            this.providers.remove(rpcName);
 
             this.ackTimeoutRegistry.add(Topic.RPC, Actions.UNSUBSCRIBE, rpcName, deepstreamConfig.getSubscriptionTimeout());
             this.connection.sendMsg(Topic.RPC, Actions.UNSUBSCRIBE, new String[]{rpcName});
@@ -88,8 +89,9 @@ public class RpcHandler {
     /**
      * Create a remote procedure call. This requires a rpc name for routing, a JSON serializable object for any associated
      * arguments and a callback to notify you with the rpc result or potential error.
+     *
      * @param rpcName The name of the rpc
-     * @param data Serializable data that will be passed to the provider
+     * @param data    Serializable data that will be passed to the provider
      * @return Find out if the rpc succeeded via {@link RpcResult#success()} and associated data via {@link RpcResult#getData()}
      */
     @ObjectiveCName("make:data:")
@@ -130,23 +132,24 @@ public class RpcHandler {
     /**
      * Main interface. Handles incoming messages
      * from the message distributor
+     *
      * @param message The message received from the server
      */
     @ObjectiveCName("handle:")
-    void handle( Message message ) {
+    void handle(Message message) {
         String rpcName;
         String correlationId;
         Rpc rpc;
 
         // RPC Requests
-        if( message.action == Actions.REQUEST ) {
-            this.respondToRpc( message );
+        if (message.action == Actions.REQUEST) {
+            this.respondToRpc(message);
             return;
         }
         // RPC subscription Acks
-        if( message.action == Actions.ACK &&
-                ( message.data[ 0 ].equals( Actions.SUBSCRIBE.toString() ) || message.data[ 0 ].equals( Actions.UNSUBSCRIBE.toString() ) ) ) {
-            this.ackTimeoutRegistry.clear( message );
+        if (message.action == Actions.ACK &&
+                (message.data[0].equals(Actions.SUBSCRIBE.toString()) || message.data[0].equals(Actions.UNSUBSCRIBE.toString()))) {
+            this.ackTimeoutRegistry.clear(message);
             return;
         }
 
@@ -154,33 +157,31 @@ public class RpcHandler {
          * Error messages always have the error as first parameter. So the
          * order is different to ack and response messages
          */
-        if( message.action == Actions.ERROR || message.action == Actions.ACK ) {
-            rpcName = message.data[ 1 ];
-            correlationId = message.data[ 2 ];
+        if (message.action == Actions.ERROR || message.action == Actions.ACK) {
+            rpcName = message.data[1];
+            correlationId = message.data[2];
         } else {
-            rpcName = message.data[ 0 ];
-            correlationId = message.data[ 1 ];
+            rpcName = message.data[0];
+            correlationId = message.data[1];
         }
 
         /*
-        * Retrieve the rpc object
-        */
-        rpc = this.getRpc( correlationId, message.raw );
-        if( rpc == null ) {
+         * Retrieve the rpc object
+         */
+        rpc = this.getRpc(correlationId, message.raw);
+        if (rpc == null) {
             return;
         }
 
         // RPC Responses
-        if( message.action == Actions.ACK ) {
+        if (message.action == Actions.ACK) {
             rpc.ack();
-        }
-        else if( message.action == Actions.RESPONSE ) {
-            rpc.respond( rpcName, message.data[ 2 ] );
-            this.rpcs.remove( correlationId );
-        }
-        else if( message.action == Actions.ERROR ) {
-            rpc.error( rpcName, message.data[ 0 ] );
-            this.rpcs.remove( correlationId );
+        } else if (message.action == Actions.RESPONSE) {
+            rpc.respond(rpcName, message.data[2]);
+            this.rpcs.remove(correlationId);
+        } else if (message.action == Actions.ERROR) {
+            rpc.error(rpcName, message.data[0]);
+            this.rpcs.remove(correlationId);
         }
     }
 
@@ -190,10 +191,10 @@ public class RpcHandler {
      */
     @ObjectiveCName("getRpc:raw:")
     private Rpc getRpc(String correlationId, String raw) {
-        Rpc rpc = this.rpcs.get( correlationId );
+        Rpc rpc = this.rpcs.get(correlationId);
 
-        if( rpc == null ) {
-            this.client.onError( Topic.RPC, Event.UNSOLICITED_MESSAGE, raw );
+        if (rpc == null) {
+            this.client.onError(Topic.RPC, Event.UNSOLICITED_MESSAGE, raw);
         }
 
         return rpc;
@@ -206,22 +207,22 @@ public class RpcHandler {
      * if this client sends a unprovide message whilst an incoming request is already in flight)
      */
     @ObjectiveCName("respondToRpc:")
-    private void respondToRpc( Message message ) {
-        String rpcName = message.data[ 0 ];
-        String correlationId = message.data[ 1 ];
+    private void respondToRpc(Message message) {
+        String rpcName = message.data[0];
+        String correlationId = message.data[1];
         RpcResponse response;
         Object data = null;
 
-        if( message.data[ 2 ] != null ) {
+        if (message.data[2] != null) {
             data = MessageParser.convertTyped(message.data[2], this.client, deepstreamConfig.getJsonParser());
         }
 
-        RpcRequestedListener callback = this.providers.get( rpcName );
-        if( callback != null ) {
+        RpcRequestedListener callback = this.providers.get(rpcName);
+        if (callback != null) {
             response = new RpcResponse(this.connection, rpcName, correlationId);
             callback.onRPCRequested(rpcName, data, response);
         } else {
-            this.connection.sendMsg( Topic.RPC, Actions.REJECTION, new String[] { rpcName, correlationId } );
+            this.connection.sendMsg(Topic.RPC, Actions.REJECTION, new String[]{rpcName, correlationId});
         }
     }
 
@@ -230,7 +231,7 @@ public class RpcHandler {
      */
     @ObjectiveCName("sendRPCSubscribe:")
     private void sendRPCSubscribe(String rpcName) {
-        if( this.client.getConnectionState() == ConnectionState.OPEN ) {
+        if (this.client.getConnectionState() == ConnectionState.OPEN) {
             this.ackTimeoutRegistry.add(Topic.RPC, Actions.SUBSCRIBE, rpcName, deepstreamConfig.getSubscriptionTimeout());
             this.connection.sendMsg(Topic.RPC, Actions.SUBSCRIBE, new String[]{rpcName});
         }

@@ -73,18 +73,20 @@ public class DeepstreamClient extends DeepstreamClientAbstract {
 
     /**
      * deepstream.io java client
-     * @param url URL to connect to. The protocol can be omited, e.g. <host>:<port>
+     *
+     * @param url             URL to connect to. The protocol can be omited, e.g. <host>:<port>
      * @param endpointFactory An EndpointFactory that returns an Endpoint
      * @throws URISyntaxException Thrown if the url in incorrect
      */
     @ObjectiveCName("init:endpointFactory:")
-    public DeepstreamClient(final String url, EndpointFactory endpointFactory) throws URISyntaxException, InvalidDeepstreamConfig{
+    public DeepstreamClient(final String url, EndpointFactory endpointFactory) throws URISyntaxException, InvalidDeepstreamConfig {
         this(url, new DeepstreamConfig(), endpointFactory);
     }
 
     /**
      * deepstream.io java client
-     * @param url URL to connect to. The protocol can be omited, e.g. <host>:<port>
+     *
+     * @param url             URL to connect to. The protocol can be omited, e.g. <host>:<port>
      * @param endpointFactory An EndpointFactory that returns an Endpoint
      * @throws URISyntaxException Thrown if the url in incorrect
      */
@@ -95,7 +97,8 @@ public class DeepstreamClient extends DeepstreamClientAbstract {
 
     /**
      * deepstream.io java client
-     * @param url URL to connect to. The protocol can be omited, e.g. <host>:<port>
+     *
+     * @param url             URL to connect to. The protocol can be omited, e.g. <host>:<port>
      * @param endpointFactory An EndpointFactory that returns an Endpoint
      * @throws URISyntaxException Thrown if the url in incorrect
      */
@@ -106,7 +109,8 @@ public class DeepstreamClient extends DeepstreamClientAbstract {
 
     /**
      * deepstream.io java client
-     * @param url URL to connect to. The protocol can be omited, e.g. <host>:<port>
+     *
+     * @param url              URL to connect to. The protocol can be omited, e.g. <host>:<port>
      * @param deepstreamConfig A map of options that extend the ones specified in DefaultConfig.properties
      * @throws URISyntaxException Thrown if the url in incorrect
      */
@@ -117,9 +121,10 @@ public class DeepstreamClient extends DeepstreamClientAbstract {
 
     /**
      * deepstream.io java client
-     * @param url URL to connect to. The protocol can be omited, e.g. <host>:<port>
+     *
+     * @param url              URL to connect to. The protocol can be omited, e.g. <host>:<port>
      * @param deepstreamConfig A map of options that extend the ones specified in DefaultConfig.properties
-     * @param endpointFactory An EndpointFactory that returns an Endpoint
+     * @param endpointFactory  An EndpointFactory that returns an Endpoint
      * @throws URISyntaxException Thrown if the url in incorrect
      */
     @ObjectiveCName("init:deepstreamConfig:endpointFactory:")
@@ -177,16 +182,15 @@ public class DeepstreamClient extends DeepstreamClientAbstract {
      * @param deepstreamRuntimeErrorHandler The listener to set
      */
     @ObjectiveCName("setRuntimeErrorHandler:")
-    public void setRuntimeErrorHandler( DeepstreamRuntimeErrorHandler deepstreamRuntimeErrorHandler )  {
-        super.setRuntimeErrorHandler( deepstreamRuntimeErrorHandler );
+    public void setRuntimeErrorHandler(DeepstreamRuntimeErrorHandler deepstreamRuntimeErrorHandler) {
+        super.setRuntimeErrorHandler(deepstreamRuntimeErrorHandler);
     }
 
     /**
-     * @see DeepstreamClient#login(JsonElement)
-     *
-     * Does not call the login callback, used mainly for anonymous logins where your guaranteed login
-     *
      * @return The login result
+     * @see DeepstreamClient#login(JsonElement)
+     * <p>
+     * Does not call the login callback, used mainly for anonymous logins where your guaranteed login
      */
     @ObjectiveCName("login")
     public LoginResult login() {
@@ -196,21 +200,21 @@ public class DeepstreamClient extends DeepstreamClientAbstract {
     /**
      * Send authentication parameters to the client to fully open
      * the connection.
-     *
+     * <p>
      * Please note: Authentication parameters are send over an already established
      * connection, rather than appended to the server URL. This means the parameters
      * will be encrypted when used with a WSS / HTTPS connection. If the deepstream server
      * on the other side has message logging enabled it will however be written to the logs in
      * plain text. If additional security is a requirement it might therefor make sense to hash
      * the password on the client.
-     *
+     * <p>
      * If the connection is not yet established the authentication parameter will be
      * stored and send once it becomes available
-     *
+     * <p>
      * authParams can be any JSON serializable data structure and its up for the
      * permission handler on the server to make sense of them, although something
      * like { username: 'someName', password: 'somePass' } will probably make the most sense.
-     *
+     * <p>
      * login can be called multiple times until either the connection is authenticated or
      * forcefully closed by the server since its maxAuthAttempts threshold has been exceeded
      *
@@ -249,6 +253,7 @@ public class DeepstreamClient extends DeepstreamClientAbstract {
 
     /**
      * Closes the connection to the server.
+     *
      * @return The deepstream client
      */
     public DeepstreamClient close() {
@@ -260,28 +265,31 @@ public class DeepstreamClient extends DeepstreamClientAbstract {
     /**
      * Add a listener that can be notified via {@link ConnectionStateListener#connectionStateChanged(ConnectionState)}
      * whenever the {@link ConnectionState} changes
+     *
      * @param connectionStateListener The listener to add
      * @return The deepstream client
      */
     @ObjectiveCName("addConnectionChangedListener:")
-    public DeepstreamClient addConnectionChangeListener( ConnectionStateListener connectionStateListener) {
+    public DeepstreamClient addConnectionChangeListener(ConnectionStateListener connectionStateListener) {
         this.connection.addConnectionChangeListener(connectionStateListener);
         return this;
     }
 
     /**
      * Removes a {@link ConnectionStateListener} added via {@link DeepstreamClient#addConnectionChangeListener(ConnectionStateListener)}
+     *
      * @param connectionStateListener The listener to remove
      * @return The deepstream client
      */
     @ObjectiveCName("removeConnectionChangedListener:")
-    public DeepstreamClient removeConnectionChangeListener( ConnectionStateListener connectionStateListener) {
+    public DeepstreamClient removeConnectionChangeListener(ConnectionStateListener connectionStateListener) {
         this.connection.removeConnectionChangeListener(connectionStateListener);
         return this;
     }
 
     /**
      * Returns the current state of the connection.
+     *
      * @return The connection state
      */
     public ConnectionState getConnectionState() {
@@ -291,10 +299,11 @@ public class DeepstreamClient extends DeepstreamClientAbstract {
     /**
      * Sets global connectivity state and notifies current connections about it. When connectivity is {@link GlobalConnectivityState#DISCONNECTED)} connection will be closed and
      * no reconnects will be attempted. If connectivity is set to {@link GlobalConnectivityState#CONNECTED)} and current {@link ConnectionState)} is {@link ConnectionState#CLOSED)}
-     * or {@link ConnectionState#ERROR)} then client will try reconnecting. 
-     * @param  {GlobalConnectivityState} globalConnectivityState Current global connectivity state
+     * or {@link ConnectionState#ERROR)} then client will try reconnecting.
+     *
+     * @param {GlobalConnectivityState} globalConnectivityState Current global connectivity state
      */
-    public void setGlobalConnectivityState(GlobalConnectivityState globalConnectivityState){
+    public void setGlobalConnectivityState(GlobalConnectivityState globalConnectivityState) {
         this.connection.setGlobalConnectivityState(globalConnectivityState);
     }
 
@@ -302,6 +311,7 @@ public class DeepstreamClient extends DeepstreamClientAbstract {
      * Returns a random string. The first block of characters
      * is a timestamp, in order to allow databases to optimize for semi-
      * sequentuel numberings
+     *
      * @return A unique id
      */
     public String getUid() {

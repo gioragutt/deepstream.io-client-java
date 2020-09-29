@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Properties;
 
 class DeepstreamConfig {
-    private Properties properties;
+    private final Properties properties;
     private Gson gsonInstance = null;
 
     DeepstreamConfig() {
@@ -21,7 +21,7 @@ class DeepstreamConfig {
     }
 
     @ObjectiveCName("init:")
-    DeepstreamConfig( Properties properties ) throws InvalidDeepstreamConfig {
+    DeepstreamConfig(Properties properties) throws InvalidDeepstreamConfig {
         this.properties = properties;
         this.validateProperties();
     }
@@ -41,7 +41,7 @@ class DeepstreamConfig {
             this.getRecordDeleteTimeout();
             this.getRecordMergeStrategy();
             this.getJsonParser();
-        } catch( Exception e ) {
+        } catch (Exception e) {
             throw new InvalidDeepstreamConfig();
         }
     }
@@ -93,7 +93,7 @@ class DeepstreamConfig {
     int getRecordDeleteTimeout() {
         return Integer.parseInt(getOption(ConfigOptions.RECORD_DELETE_TIMEOUT, "3000"));
     }
-    
+
     MergeStrategy getRecordMergeStrategy() {
         return MergeStrategy.valueOf(getOption(ConfigOptions.RECORD_MERGE_STRATEGY, "REMOTE_WINS"));
     }

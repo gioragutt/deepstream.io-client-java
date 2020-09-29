@@ -8,14 +8,15 @@ import com.google.j2objc.annotations.ObjectiveCName;
  */
 public class RpcResult {
 
-    private boolean success;
-    private Object data;
+    private final boolean success;
+    private final Object data;
 
     /**
      * This object gives you access to the rpc response state
      * to respond to a request
+     *
      * @param success true the rpc completed succesfully
-     * @param data the data returned by the request
+     * @param data    the data returned by the request
      */
     @ObjectiveCName("init:data:")
     RpcResult(boolean success, Object data) {
@@ -25,6 +26,7 @@ public class RpcResult {
 
     /**
      * Whether or not the RPC completed
+     *
      * @return true if the Request was completed successfully
      */
     public boolean success() {
@@ -34,6 +36,7 @@ public class RpcResult {
     /**
      * The data returned by the RPC. If {@link RpcResult#success()} is true the resulting
      * data from your rpc, if false data associated with why it failed.
+     *
      * @return the object the provider returned
      */
     public Object getData() {

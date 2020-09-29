@@ -14,7 +14,7 @@ public class DeepstreamRecordDestroyedException extends RuntimeException {
     public final String method;
 
     @ObjectiveCName("init:")
-    DeepstreamRecordDestroyedException(String method ) {
+    DeepstreamRecordDestroyedException(String method) {
         this.method = method;
     }
 }

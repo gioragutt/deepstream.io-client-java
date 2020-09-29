@@ -13,13 +13,13 @@ class Message {
     final Topic topic;
 
     /**
-     * @param raw The raw data received
-     * @param topic The message topic
+     * @param raw    The raw data received
+     * @param topic  The message topic
      * @param action The message action
-     * @param data The message data, as an array
+     * @param data   The message data, as an array
      */
     @ObjectiveCName("init:topic:action:data:")
-    Message( String raw, Topic topic, Actions action, String[] data ) {
+    Message(String raw, Topic topic, Actions action, String[] data) {
         this.raw = raw;
         this.topic = topic;
         this.action = action;

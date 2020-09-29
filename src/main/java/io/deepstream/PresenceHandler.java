@@ -27,7 +27,7 @@ public class PresenceHandler {
         new UtilResubscribeNotifier(this.client, new UtilResubscribeNotifier.UtilResubscribeListener() {
             @Override
             public void resubscribe() {
-                if( emitter.listeners(Topic.PRESENCE.toString()).size() != 0 ) {
+                if (emitter.listeners(Topic.PRESENCE.toString()).size() != 0) {
                     connection.sendMsg(Topic.PRESENCE, Actions.SUBSCRIBE, new String[]{Actions.SUBSCRIBE.toString()});
                 }
             }
@@ -80,9 +80,9 @@ public class PresenceHandler {
      *                      and a boolean to indicated whether they logged in or out
      */
     @ObjectiveCName("subscribe:")
-    public void subscribe( PresenceEventListener eventListener ) {
+    public void subscribe(PresenceEventListener eventListener) {
         if (this.emitter.hasListeners(Topic.PRESENCE.toString())) {
-            this.ackTimeoutRegistry.add( Topic.PRESENCE, Actions.SUBSCRIBE, Topic.PRESENCE.toString(), this.subscriptionTimeout );
+            this.ackTimeoutRegistry.add(Topic.PRESENCE, Actions.SUBSCRIBE, Topic.PRESENCE.toString(), this.subscriptionTimeout);
             this.connection.send(MessageBuilder.getMsg(Topic.PRESENCE, Actions.SUBSCRIBE, Actions.SUBSCRIBE.toString()));
         }
         this.emitter.on(Topic.PRESENCE, eventListener);
@@ -95,41 +95,36 @@ public class PresenceHandler {
      *                      and a boolean to indicated whether they logged in or out
      */
     @ObjectiveCName("unsubscribe:")
-    public void unsubscribe( PresenceEventListener eventListener ) {
+    public void unsubscribe(PresenceEventListener eventListener) {
         this.emitter.off(Topic.PRESENCE.toString(), eventListener);
         if (this.emitter.hasListeners(Topic.PRESENCE.toString())) {
-            this.ackTimeoutRegistry.add( Topic.PRESENCE,  Actions.UNSUBSCRIBE, Topic.PRESENCE.toString(), this.subscriptionTimeout );
+            this.ackTimeoutRegistry.add(Topic.PRESENCE, Actions.UNSUBSCRIBE, Topic.PRESENCE.toString(), this.subscriptionTimeout);
             this.connection.send(MessageBuilder.getMsg(Topic.PRESENCE, Actions.UNSUBSCRIBE, Actions.UNSUBSCRIBE.toString()));
         }
     }
 
 
-    protected void handle( Message message ) {
-        if( message.action == Actions.ERROR && message.data[0].equals(Event.MESSAGE_DENIED.toString()) ) {
-            this.ackTimeoutRegistry.clear( message );
-            this.client.onError( Topic.PRESENCE, Event.MESSAGE_DENIED, message.data[1] );
-        }
-        else if( message.action == Actions.ACK ) {
-            this.ackTimeoutRegistry.clear( message );
-        }
-        else if( message.action == Actions.PRESENCE_JOIN ) {
-            this.broadcastEvent( Topic.PRESENCE.toString(), message.data[0], true );
-        }
-        else if( message.action == Actions.PRESENCE_LEAVE ) {
-            this.broadcastEvent( Topic.PRESENCE.toString(), message.data[0], false );
-        }
-        else if( message.action == Actions.QUERY ) {
+    protected void handle(Message message) {
+        if (message.action == Actions.ERROR && message.data[0].equals(Event.MESSAGE_DENIED.toString())) {
+            this.ackTimeoutRegistry.clear(message);
+            this.client.onError(Topic.PRESENCE, Event.MESSAGE_DENIED, message.data[1]);
+        } else if (message.action == Actions.ACK) {
+            this.ackTimeoutRegistry.clear(message);
+        } else if (message.action == Actions.PRESENCE_JOIN) {
+            this.broadcastEvent(Topic.PRESENCE.toString(), message.data[0], true);
+        } else if (message.action == Actions.PRESENCE_LEAVE) {
+            this.broadcastEvent(Topic.PRESENCE.toString(), message.data[0], false);
+        } else if (message.action == Actions.QUERY) {
             this.notifier.receive(Actions.QUERY.toString(), null, message.data);
-        }
-        else {
-            this.client.onError( Topic.PRESENCE, Event.UNSOLICITED_MESSAGE, message.action.toString() );
+        } else {
+            this.client.onError(Topic.PRESENCE, Event.UNSOLICITED_MESSAGE, message.action.toString());
         }
     }
 
-    private void broadcastEvent( String eventName, Object... args ) {
-        java.util.List<Object> listeners = this.emitter.listeners( eventName );
-        for( Object listener : listeners ) {
-            if( args != null ) {
+    private void broadcastEvent(String eventName, Object... args) {
+        java.util.List<Object> listeners = this.emitter.listeners(eventName);
+        for (Object listener : listeners) {
+            if (args != null) {
                 if ((Boolean) args[1])
                     ((PresenceEventListener) listener).onClientLogin((String) args[0]);
                 else

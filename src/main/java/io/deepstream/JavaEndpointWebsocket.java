@@ -16,17 +16,17 @@ import java.security.NoSuchAlgorithmException;
 class JavaEndpointWebsocket implements Endpoint {
 
     private final URI uri;
-    private WebSocket websocket;
     private final Connection connection;
+    private WebSocket websocket;
 
-    JavaEndpointWebsocket(URI uri, Connection connection ) throws URISyntaxException {
+    JavaEndpointWebsocket(URI uri, Connection connection) throws URISyntaxException {
         this.uri = uri;
         this.connection = connection;
     }
 
     @Override
     public void send(String message) {
-        this.websocket.send( message );
+        this.websocket.send(message);
     }
 
     @Override
@@ -47,8 +47,8 @@ class JavaEndpointWebsocket implements Endpoint {
     }
 
     private class WebSocket extends WebSocketClient {
-        WebSocket( URI serverUri , Draft draft  ) {
-            super( serverUri, draft );
+        WebSocket(URI serverUri, Draft draft) {
+            super(serverUri, draft);
             // Set the SSL context if the socket server is using Secure WebSockets
             if (serverUri.toString().startsWith("wss:")) {
                 SSLContext sslContext;
@@ -75,14 +75,14 @@ class JavaEndpointWebsocket implements Endpoint {
 
         @Override
         public void onMessage(String message) {
-            connection.onMessage( message );
+            connection.onMessage(message);
         }
 
         @Override
         public void onClose(int code, String reason, boolean remote) {
             try {
                 connection.onClose();
-            } catch( Exception e ) {
+            } catch (Exception e) {
             }
         }
 
@@ -91,7 +91,7 @@ class JavaEndpointWebsocket implements Endpoint {
             if (ex instanceof NullPointerException && ex.getMessage().equals("ssl == null")) {
                 return;
             }
-            connection.onError( ex.getMessage() );
+            connection.onError(ex.getMessage());
         }
     }
 }

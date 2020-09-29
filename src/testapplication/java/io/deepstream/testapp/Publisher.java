@@ -2,7 +2,6 @@ package io.deepstream.testapp;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import io.deepstream.*;
 
 import java.util.Date;
 import java.util.concurrent.*;
@@ -20,7 +19,7 @@ public class Publisher {
                 DeepstreamClient client = DeepstreamFactory.getInstance().getClient("localhost:6020");
                 subscribeConnectionChanges(client);
                 subscribeRuntimeErrors(client);
-                
+
                 LoginResult loginResult = client.login();
                 if (!loginResult.loggedIn()) {
                     System.err.println("Provider Failed to login " + loginResult.getErrorEvent());
@@ -103,7 +102,7 @@ public class Publisher {
                     data.addProperty("id", subscription);
                     data.addProperty("count", count[0]++);
                     record.set(data);
-                    System.out.println( "Setting record " + data);
+                    System.out.println("Setting record " + data);
                 }
             }, 1, 5, TimeUnit.SECONDS);
             return scheduledFuture;
@@ -111,12 +110,12 @@ public class Publisher {
 
         private ScheduledFuture updateList(final String subscription, final DeepstreamClient client) {
             final List list = client.record.getList(subscription);
-            list.setEntries( new String[] {} );
+            list.setEntries(new String[]{});
             ScheduledExecutorService executor = new ScheduledThreadPoolExecutor(1);
             ScheduledFuture scheduledFuture = executor.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
-                    list.addEntry( client.getUid() );
+                    list.addEntry(client.getUid());
                 }
             }, 1, 5, TimeUnit.SECONDS);
             return scheduledFuture;

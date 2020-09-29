@@ -26,19 +26,20 @@ class UtilEmitter {
 
     /**
      * @param enu eventName as an Enum
-     * @param fn The listener to invoke
+     * @param fn  The listener to invoke
      * @return a reference to this object.
      */
     @ObjectiveCName("on:fn:")
-    public UtilEmitter on(Enum enu, Object fn ) {
-        this.on( enu.toString(), fn );
+    public UtilEmitter on(Enum enu, Object fn) {
+        this.on(enu.toString(), fn);
         return this;
     }
 
     /**
      * Listens on the event.
+     *
      * @param event event name.
-     * @param fn The listener to invoke
+     * @param fn    The listener to invoke
      * @return a reference to this object.
      */
     @ObjectiveCName("onWithEvent:fn:")
@@ -59,7 +60,7 @@ class UtilEmitter {
      * Adds a one time listener for the event.
      *
      * @param event an event name.
-     * @param fn The listener to invoke
+     * @param fn    The listener to invoke
      * @return a reference to this object.
      */
     @ObjectiveCName("once:fn:")
@@ -94,7 +95,7 @@ class UtilEmitter {
      * Removes the listener.
      *
      * @param event an event name.
-     * @param fn The listener to invoke
+     * @param fn    The listener to invoke
      * @return a reference to this object.
      */
     @ObjectiveCName("off:fn:")
@@ -140,6 +141,7 @@ class UtilEmitter {
 
     /**
      * Check if this emitter has any listeners
+     *
      * @return all listeners
      */
     public Set<String> getEvents() {

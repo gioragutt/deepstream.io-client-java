@@ -15,6 +15,7 @@ public class LoginResult {
 
     /**
      * Called when {@link DeepstreamClient#login(JsonElement)} is successful
+     *
      * @param loggedIn true
      * @param userData Optional data that is specific to the user and returned on succesfuly authentication
      */
@@ -27,9 +28,10 @@ public class LoginResult {
 
     /**
      * Called when {@link DeepstreamClient#login(JsonElement)} is unsuccessful
-     * @param loggedIn false
+     *
+     * @param loggedIn   false
      * @param errorEvent error event
-     * @param data Contains data associated to the failed login, such as the reason
+     * @param data       Contains data associated to the failed login, such as the reason
      */
     @ObjectiveCName("init:errorEvent:data:")
     LoginResult(boolean loggedIn, Event errorEvent, Object data) {
@@ -51,6 +53,7 @@ public class LoginResult {
      * Return the data associated with login. If login was successful,
      * this would be the user associated data. Otherwise data explaining
      * the reason why it wasn't.
+     *
      * @return A JsonElement containing the data received from the server during login
      */
     public Object getData() {
@@ -59,6 +62,7 @@ public class LoginResult {
 
     /**
      * The error message the server sent to explain why the client couldn't log in.
+     *
      * @return an error event
      */
     public Event getErrorEvent() {

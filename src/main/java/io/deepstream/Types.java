@@ -12,55 +12,55 @@ enum Types {
      * A string representation.
      * Example: SDog -> "Dog"
      */
-    STRING( "S" ),
+    STRING("S"),
     /**
      * A JsonElement representation.
      * Example: O{"type":"Dog"} -> JsonElement
      */
-    OBJECT( "O" ),
+    OBJECT("O"),
     /**
      * A number representation.
      * Example: N15-> 15
      */
-    NUMBER( "N" ),
+    NUMBER("N"),
     /**
      * Null representation
      * Example: L -> null
      */
-    NULL( "L" ),
+    NULL("L"),
     /**
      * Boolean true representation
      * Example: T -> true
      */
-    TRUE( "T" ),
+    TRUE("T"),
     /**
      * Boolean False representation
      * Example: F -> false
      */
-    FALSE( "F" ),
+    FALSE("F"),
     /**
      * Undefined representation
      * Example: U -> ...does not exist in java..
      */
-    UNDEFINED( "U" );
+    UNDEFINED("U");
 
-    private static final Map<String,Types> lookup  = new HashMap<String,Types>();
+    private static final Map<String, Types> lookup = new HashMap<String, Types>();
 
     static {
-        for( Types s : EnumSet.allOf( Types.class ) )
-            lookup.put( s.toString(), s);
+        for (Types s : EnumSet.allOf(Types.class))
+            lookup.put(s.toString(), s);
     }
 
-    private String type;
+    private final String type;
 
     @ObjectiveCName("init:")
-    Types( String type ) {
+    Types(String type) {
         this.type = type;
     }
 
     @ObjectiveCName("getType:")
-    static Types getType( char type ) {
-        return lookup.get( type + "" );
+    static Types getType(char type) {
+        return lookup.get(type + "");
     }
 
     @Override

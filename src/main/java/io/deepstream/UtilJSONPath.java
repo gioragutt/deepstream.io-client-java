@@ -1,6 +1,9 @@
 package io.deepstream;
 
-import com.google.gson.*;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
+import com.google.gson.JsonObject;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -10,7 +13,7 @@ class UtilJSONPath {
 
     private JsonElement coreElement;
 
-    public UtilJSONPath(JsonElement e){
+    public UtilJSONPath(JsonElement e) {
         this.coreElement = e;
     }
 
@@ -18,7 +21,7 @@ class UtilJSONPath {
      * Traverses through the json element tree for retrieving values
      *
      * @param element The element to traverse through
-     * @param path The path to find
+     * @param path    The path to find
      * @return The element indicated by the path
      */
     private static JsonElement getIterateThrough(JsonElement element, String path) {
@@ -26,7 +29,7 @@ class UtilJSONPath {
         JsonElement traverser = element;
         Object token = null;
 
-        for( int i=0; i < tokens.size(); i++ ) {
+        for (int i = 0; i < tokens.size(); i++) {
             token = tokens.get(i);
 
             try {
@@ -41,7 +44,7 @@ class UtilJSONPath {
                 } else {
                     traverser = null;
                 }
-            } catch( IndexOutOfBoundsException e ) {
+            } catch (IndexOutOfBoundsException e) {
                 return null;
             }
         }
@@ -72,7 +75,7 @@ class UtilJSONPath {
         return tokens;
     }
 
-    private static JsonElement setIterateThrough (JsonElement element, String path, JsonElement value, boolean delete) {
+    private static JsonElement setIterateThrough(JsonElement element, String path, JsonElement value, boolean delete) {
 
         ArrayList<Object> tokens = tokenize(path);
         JsonElement[] nodes = new JsonElement[tokens.size()];
@@ -82,7 +85,7 @@ class UtilJSONPath {
         // will be either a String or int
         Object token = null;
         int i;
-        for(i = 0; i < tokens.size(); i++) {
+        for (i = 0; i < tokens.size(); i++) {
             JsonElement parent = nodes[i];
             token = tokens.get(i);
 
@@ -175,7 +178,7 @@ class UtilJSONPath {
             }
             nodes[i + 1] = traverser;
         }
-        if( token != null && (value != null || delete) ) {
+        if (token != null && (value != null || delete)) {
             updateValue(value, nodes[nodes.length - 1], token, delete);
         }
         return traverser;
@@ -196,23 +199,22 @@ class UtilJSONPath {
     }
 
     private static void updateValue(JsonElement value, JsonElement parent, Object token, boolean delete) {
-        if( parent.isJsonObject() ) {
+        if (parent.isJsonObject()) {
             JsonObject object = (JsonObject) parent;
-            if( delete ) {
+            if (delete) {
                 object.remove((String) token);
             } else {
-                object.add((String) token, value );
+                object.add((String) token, value);
             }
-        }
-        else if( parent.isJsonArray() ) {
+        } else if (parent.isJsonArray()) {
             JsonArray object = (JsonArray) parent;
             int size = object.size();
 
-            if( delete ) {
+            if (delete) {
                 object.remove((Integer) token);
             } else {
-                for( int i=size; i<= (Integer) token; i++ ){
-                    object.add( JsonNull.INSTANCE );
+                for (int i = size; i <= (Integer) token; i++) {
+                    object.add(JsonNull.INSTANCE);
                 }
                 object.set((Integer) token, value);
             }
@@ -222,20 +224,20 @@ class UtilJSONPath {
     private static JsonElement getArrayElement(JsonElement traverser,
                                                String token) {
 
-        int index =  Integer.valueOf( getIndex(token) );
+        int index = Integer.valueOf(getIndex(token));
         try {
             return traverser.getAsJsonObject()
                     .get(getTokenPrefix(token)).getAsJsonArray()
                     .get(index);
-        } catch( ArrayIndexOutOfBoundsException e ) {
+        } catch (ArrayIndexOutOfBoundsException e) {
             return null;
-        } catch( IndexOutOfBoundsException e ) {
+        } catch (IndexOutOfBoundsException e) {
             return null;
         }
     }
 
     private static String getTokenPrefix(String token) {
-        return token.substring( 0, token.indexOf( "[" ) );
+        return token.substring(0, token.indexOf("["));
     }
 
     private static String getIndex(String token) {
@@ -243,9 +245,9 @@ class UtilJSONPath {
     }
 
     private static boolean isArray(String token) {
-        boolean isArray = ( token.contains("[") && token.contains("]") && (token.indexOf("[") < token.indexOf("]")));
+        boolean isArray = (token.contains("[") && token.contains("]") && (token.indexOf("[") < token.indexOf("]")));
         try {
-            Integer.parseInt( token.substring(token.indexOf("[")+1, token.indexOf("]") ).trim() );
+            Integer.parseInt(token.substring(token.indexOf("[") + 1, token.indexOf("]")).trim());
             return isArray;
         } catch (Exception e) {
             return false;
@@ -272,7 +274,7 @@ class UtilJSONPath {
 
     /**
      * Deletes the value specified in the path.
-     *
+     * <p>
      * Traverses through the tree to find the parent object and then
      * just removes the key
      *
@@ -300,20 +302,24 @@ class UtilJSONPath {
 
         @Override
         public Iterator<UtilJSONPath> iterator() {
-            return new Iterator<UtilJSONPath>(){
+            return new Iterator<UtilJSONPath>() {
                 final Iterator<JsonElement> it = root.iterator();
+
                 @Override
                 public boolean hasNext() {
                     return it.hasNext();
                 }
+
                 @Override
                 public UtilJSONPath next() {
                     return new UtilJSONPath(it.next());
                 }
+
                 @Override
                 public void remove() {
                     it.remove();
-                }};
+                }
+            };
         }
     }
 }

@@ -2,8 +2,10 @@ package io.deepstream;
 
 import com.google.j2objc.annotations.ObjectiveCName;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * The entry point for events, such as {@link EventHandler#subscribe(String, EventListener)},
@@ -48,11 +50,11 @@ public class EventHandler {
      * @param eventListener The eventListener
      */
     @ObjectiveCName("subscribe:eventListener:")
-    public void subscribe( String eventName, EventListener eventListener ) {
+    public void subscribe(String eventName, EventListener eventListener) {
         if (this.emitter.hasListeners(eventName)) {
-            this.subscriptions.add( eventName );
-            this.ackTimeoutRegistry.add( Topic.EVENT, Actions.SUBSCRIBE, eventName, this.subscriptionTimeout );
-            this.connection.send( MessageBuilder.getMsg( Topic.EVENT, Actions.SUBSCRIBE, eventName ) );
+            this.subscriptions.add(eventName);
+            this.ackTimeoutRegistry.add(Topic.EVENT, Actions.SUBSCRIBE, eventName, this.subscriptionTimeout);
+            this.connection.send(MessageBuilder.getMsg(Topic.EVENT, Actions.SUBSCRIBE, eventName));
         }
         this.emitter.on(eventName, eventListener);
     }
@@ -64,11 +66,11 @@ public class EventHandler {
      * @param eventListener The listener that was previous added
      */
     @ObjectiveCName("unsubscribe:eventListener:")
-    public void unsubscribe( String eventName, EventListener eventListener ) {
-        this.subscriptions.remove( eventName );
+    public void unsubscribe(String eventName, EventListener eventListener) {
+        this.subscriptions.remove(eventName);
         this.emitter.off(eventName, eventListener);
         if (this.emitter.hasListeners(eventName)) {
-            this.ackTimeoutRegistry.add( Topic.EVENT,  Actions.UNSUBSCRIBE, eventName, this.subscriptionTimeout );
+            this.ackTimeoutRegistry.add(Topic.EVENT, Actions.UNSUBSCRIBE, eventName, this.subscriptionTimeout);
             this.connection.send(MessageBuilder.getMsg(Topic.EVENT, Actions.UNSUBSCRIBE, eventName));
         }
     }
@@ -77,20 +79,21 @@ public class EventHandler {
      * @see EventHandler
      */
     @ObjectiveCName("emit:")
-    public void emit( String eventName ) {
-        this.connection.send( MessageBuilder.getMsg( Topic.EVENT, Actions.EVENT, eventName));
+    public void emit(String eventName) {
+        this.connection.send(MessageBuilder.getMsg(Topic.EVENT, Actions.EVENT, eventName));
         this.broadcastEvent(eventName, null);
     }
 
     /**
      * Emit an event that you want all subscribers, both local and remote to be informed of. You
      * can provide any object that can be serialised to json
+     *
      * @param eventName the event name
-     * @param data the data to serialise and send with the event
+     * @param data      the data to serialise and send with the event
      */
     @ObjectiveCName("emit:data:")
-    public void emit( String eventName, Object data ) {
-        this.connection.send( MessageBuilder.getMsg( Topic.EVENT, Actions.EVENT, eventName, MessageBuilder.typed( data)));
+    public void emit(String eventName, Object data) {
+        this.connection.send(MessageBuilder.getMsg(Topic.EVENT, Actions.EVENT, eventName, MessageBuilder.typed(data)));
         this.broadcastEvent(eventName, data);
     }
 
@@ -104,9 +107,9 @@ public class EventHandler {
      *                       has been found or removed
      */
     @ObjectiveCName("listen:listenListener:")
-    public void listen(String pattern, ListenListener listenListener ) {
-        if( this.listeners.get( pattern ) != null ) {
-            this.client.onError( Topic.EVENT, Event.LISTENER_EXISTS, pattern );
+    public void listen(String pattern, ListenListener listenListener) {
+        if (this.listeners.get(pattern) != null) {
+            this.client.onError(Topic.EVENT, Event.LISTENER_EXISTS, pattern);
         } else {
             synchronized (this) {
                 UtilListener eventListener = new UtilListener(Topic.EVENT, pattern, listenListener, this.deepstreamConfig, this.client, this.connection);
@@ -119,58 +122,51 @@ public class EventHandler {
     /**
      * Remove the listener added via {@link EventHandler}, this will remove
      * the provider as the active provider and allow another provider to take its place
+     *
      * @param pattern The pattern that has been previously listened to
      */
     @ObjectiveCName("unlisten:")
-    public void unlisten( String pattern ) {
-        UtilListener listener = this.listeners.get( pattern );
-        if( listener != null ) {
-            this.ackTimeoutRegistry.add( Topic.EVENT,  Actions.UNLISTEN, pattern, this.subscriptionTimeout );
+    public void unlisten(String pattern) {
+        UtilListener listener = this.listeners.get(pattern);
+        if (listener != null) {
+            this.ackTimeoutRegistry.add(Topic.EVENT, Actions.UNLISTEN, pattern, this.subscriptionTimeout);
             listener.destroy();
-            this.listeners.remove( pattern );
+            this.listeners.remove(pattern);
         } else {
-            this.client.onError( Topic.EVENT, Event.NOT_LISTENING, pattern );
+            this.client.onError(Topic.EVENT, Event.NOT_LISTENING, pattern);
         }
     }
 
-    protected void handle( Message message ) {
+    protected void handle(Message message) {
         String eventName;
 
-        if( message.action == Actions.ACK ) {
-            eventName = message.data[ 1 ];
+        if (message.action == Actions.ACK) {
+            eventName = message.data[1];
         } else {
-            eventName = message.data[ 0 ];
+            eventName = message.data[0];
         }
 
-        if( message.action == Actions.EVENT ) {
-            if( message.data.length == 2 ) {
-                this.broadcastEvent( eventName, MessageParser.convertTyped(message.data[1], this.client, deepstreamConfig.getJsonParser()));
+        if (message.action == Actions.EVENT) {
+            if (message.data.length == 2) {
+                this.broadcastEvent(eventName, MessageParser.convertTyped(message.data[1], this.client, deepstreamConfig.getJsonParser()));
             } else {
                 this.broadcastEvent(eventName, null);
             }
-        }
-        else if( this.listeners.get( eventName ) != null ) {
-            this.listeners.get( eventName ).onMessage( message );
-        }
-        else if( message.action == Actions.ACK ) {
-            this.ackTimeoutRegistry.clear( message );
-        }
-        else if( message.action == Actions.ERROR ) {
-            this.client.onError( Topic.EVENT, Event.getEvent( message.data[ 0 ] ), message.data[ 1 ]);
-        }
-        else {
-            this.client.onError( Topic.EVENT, Event.UNSOLICITED_MESSAGE, eventName );
+        } else if (this.listeners.get(eventName) != null) {
+            this.listeners.get(eventName).onMessage(message);
+        } else if (message.action == Actions.ACK) {
+            this.ackTimeoutRegistry.clear(message);
+        } else if (message.action == Actions.ERROR) {
+            this.client.onError(Topic.EVENT, Event.getEvent(message.data[0]), message.data[1]);
+        } else {
+            this.client.onError(Topic.EVENT, Event.UNSOLICITED_MESSAGE, eventName);
         }
     }
 
-    private void broadcastEvent( String eventName, Object args ) {
-        List<Object> listeners = this.emitter.listeners( eventName );
-        for( Object listener : listeners ) {
-            if( args != null ) {
-                ((EventListener) listener).onEvent(eventName, args);
-            } else {
-                ((EventListener) listener).onEvent(eventName, null);
-            }
+    private void broadcastEvent(String eventName, Object args) {
+        List<Object> listeners = this.emitter.listeners(eventName);
+        for (Object listener : listeners) {
+            ((EventListener) listener).onEvent(eventName, args);
         }
     }
 }

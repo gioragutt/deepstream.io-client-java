@@ -8,8 +8,9 @@ import com.google.j2objc.annotations.ObjectiveCName;
 public interface ListEntryChangedListener {
     /**
      * Notified whenever an entry is added
+     *
      * @param listName The name of the list
-     * @param entry The name of the record that was added to the list
+     * @param entry    The name of the record that was added to the list
      * @param position The index the recordName was added to
      */
     @ObjectiveCName("onEntryAdded:entry:position:")
@@ -17,8 +18,9 @@ public interface ListEntryChangedListener {
 
     /**
      * Notified whenever an entry is removed
+     *
      * @param listName The name of the list
-     * @param entry The name of the record that was removed to the list
+     * @param entry    The name of the record that was removed to the list
      * @param position The index the recordName was removed from
      */
     @ObjectiveCName("onEntryRemoved:entry:position:")
@@ -26,8 +28,9 @@ public interface ListEntryChangedListener {
 
     /**
      * Notified whenever an entry is added
+     *
      * @param listName The name of the list
-     * @param entry The name of the record that was moved within the list
+     * @param entry    The name of the record that was moved within the list
      * @param position The index the recordName was moved to
      */
     @ObjectiveCName("onEntryMoved:entry:position:")

@@ -11,12 +11,12 @@ public interface PresenceEventListener {
      *
      * @param username the username of the client who logged in
      */
-    void onClientLogin( String username );
+    void onClientLogin(String username);
 
     /**
      * Called with the username of a client who logged out
      *
      * @param username the username of the client who logged out
      */
-    void onClientLogout( String username );
+    void onClientLogout(String username);
 }

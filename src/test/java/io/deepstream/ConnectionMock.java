@@ -12,7 +12,7 @@ public class ConnectionMock implements IConnection {
 
     @Override
     public void sendMsg(Topic topic, Actions action, String[] data) {
-        this.lastSentMessage = MessageBuilder.getMsg( topic, action, data );
+        this.lastSentMessage = MessageBuilder.getMsg(topic, action, data);
     }
 
     @Override

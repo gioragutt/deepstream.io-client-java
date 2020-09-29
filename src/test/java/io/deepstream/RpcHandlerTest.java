@@ -14,7 +14,7 @@ import java.util.Properties;
 
 import static org.mockito.Mockito.*;
 
-@RunWith( JUnit4.class )
+@RunWith(JUnit4.class)
 public class RpcHandlerTest {
 
     DeepstreamClientMock deepstreamClientMock;
@@ -27,7 +27,7 @@ public class RpcHandlerTest {
             rpcCalls++;
             double numA = ((JsonElement) data).getAsJsonObject().get("numA").getAsDouble();
             double numB = ((JsonElement) data).getAsJsonObject().get("numB").getAsDouble();
-            response.send( numA + numB );
+            response.send(numA + numB);
         }
     };
     DeepstreamRuntimeErrorHandler errorCallbackMock;
@@ -37,16 +37,16 @@ public class RpcHandlerTest {
     public void setUp() throws URISyntaxException, InvalidDeepstreamConfig {
         this.connectionMock = new ConnectionMock();
         this.connectionMock.state = ConnectionState.OPEN;
-        this.errorCallbackMock = mock( DeepstreamRuntimeErrorHandler.class );
+        this.errorCallbackMock = mock(DeepstreamRuntimeErrorHandler.class);
         this.deepstreamClientMock = new DeepstreamClientMock();
-        this.deepstreamClientMock.setRuntimeErrorHandler( errorCallbackMock );
-        this.deepstreamClientMock.setConnectionState( ConnectionState.OPEN );
+        this.deepstreamClientMock.setRuntimeErrorHandler(errorCallbackMock);
+        this.deepstreamClientMock.setConnectionState(ConnectionState.OPEN);
 
         Properties options = new Properties();
-        options.put( "subscriptionTimeout", "10" );
-        options.put( "rpcAckTimeout", "10" );
-        options.put( "rpcResponseTimeout", "30" );
-        this.rpcHandler = new RpcHandler( new DeepstreamConfig( options ), connectionMock, deepstreamClientMock );
+        options.put("subscriptionTimeout", "10");
+        options.put("rpcAckTimeout", "10");
+        options.put("rpcResponseTimeout", "30");
+        this.rpcHandler = new RpcHandler(new DeepstreamConfig(options), connectionMock, deepstreamClientMock);
     }
 
     @After
@@ -56,30 +56,30 @@ public class RpcHandlerTest {
 
     @Test
     public void registersAProvider() {
-        Assert.assertNull( connectionMock.lastSentMessage );
-        rpcHandler.provide( "addTwo", addTwoCallback );
-        Assert.assertEquals( TestUtil.replaceSeperators("P|S|addTwo+"), connectionMock.lastSentMessage );
-        Assert.assertEquals( rpcCalls, 0 );
+        Assert.assertNull(connectionMock.lastSentMessage);
+        rpcHandler.provide("addTwo", addTwoCallback);
+        Assert.assertEquals(TestUtil.replaceSeperators("P|S|addTwo+"), connectionMock.lastSentMessage);
+        Assert.assertEquals(rpcCalls, 0);
     }
 
     @Test
     public void errorsIfNoAckReceivedForProvide() throws InterruptedException {
-        rpcHandler.provide( "addTwo", addTwoCallback );
+        rpcHandler.provide("addTwo", addTwoCallback);
         Thread.sleep(50);
-        verify( errorCallbackMock, times(1) ).onException( Topic.RPC, Event.ACK_TIMEOUT, "No ACK message received in time for SUBSCRIBE addTwo" );
+        verify(errorCallbackMock, times(1)).onException(Topic.RPC, Event.ACK_TIMEOUT, "No ACK message received in time for SUBSCRIBE addTwo");
     }
 
     @Test
     public void repliesToRpcRequest() {
-        rpcHandler.provide( "addTwo", addTwoCallback );
+        rpcHandler.provide("addTwo", addTwoCallback);
 
-        rpcHandler.handle( new Message(
+        rpcHandler.handle(new Message(
                 "raw",
                 Topic.RPC,
                 Actions.REQUEST,
-                new String[] { "addTwo", "123", "O{\"numA\":7,\"numB\":3}" }
+                new String[]{"addTwo", "123", "O{\"numA\":7,\"numB\":3}"}
         ));
-        Assert.assertEquals( TestUtil.replaceSeperators( "P|RES|addTwo|123|N10.0+" ), connectionMock.lastSentMessage );
+        Assert.assertEquals(TestUtil.replaceSeperators("P|RES|addTwo|123|N10.0+"), connectionMock.lastSentMessage);
     }
 
     @Test
@@ -89,31 +89,31 @@ public class RpcHandlerTest {
                         "raw",
                         Topic.RPC,
                         Actions.REQUEST,
-                        new String[] { "doesNotExist", "123", "O{\"numA\":7,\"numB\":3}" })
+                        new String[]{"doesNotExist", "123", "O{\"numA\":7,\"numB\":3}"})
         );
-        Assert.assertEquals( TestUtil.replaceSeperators( "P|REJ|doesNotExist|123+" ), connectionMock.lastSentMessage );
+        Assert.assertEquals(TestUtil.replaceSeperators("P|REJ|doesNotExist|123+"), connectionMock.lastSentMessage);
     }
 
     @Test
     public void deregistersAProvider() {
-        rpcHandler.provide( "addTwo", addTwoCallback );
-        rpcHandler.unprovide( "addTwo" );
-        Assert.assertEquals( TestUtil.replaceSeperators("P|US|addTwo+"), connectionMock.lastSentMessage );
+        rpcHandler.provide("addTwo", addTwoCallback);
+        rpcHandler.unprovide("addTwo");
+        Assert.assertEquals(TestUtil.replaceSeperators("P|US|addTwo+"), connectionMock.lastSentMessage);
     }
 
     @Test
     public void doesntCallDeregisteredProvider() {
-        rpcHandler.provide( "addTwo", addTwoCallback );
-        rpcHandler.unprovide( "addTwo" );
+        rpcHandler.provide("addTwo", addTwoCallback);
+        rpcHandler.unprovide("addTwo");
 
         rpcHandler.handle(
                 new Message(
                         "raw",
                         Topic.RPC,
                         Actions.REQUEST,
-                        new String[] { "doesNotExist", "123", "O{\"numA\":7,\"numB\":3}" })
+                        new String[]{"doesNotExist", "123", "O{\"numA\":7,\"numB\":3}"})
         );
-        Assert.assertEquals( TestUtil.replaceSeperators( "P|REJ|doesNotExist|123+" ), connectionMock.lastSentMessage );
+        Assert.assertEquals(TestUtil.replaceSeperators("P|REJ|doesNotExist|123+"), connectionMock.lastSentMessage);
     }
 
     @Test
@@ -130,18 +130,18 @@ public class RpcHandlerTest {
             }
         }).start();
 
-        Thread.sleep( 20 );
+        Thread.sleep(20);
         rpcHandler.handle(new Message(
                 "raw",
                 Topic.RPC,
                 Actions.RESPONSE,
-                new String[]{ "addTwo", "1", "N11" }
+                new String[]{"addTwo", "1", "N11"}
         ));
-        Thread.sleep( 20 );
+        Thread.sleep(20);
 
         Assert.assertEquals(TestUtil.replaceSeperators("P|REQ|addTwo|1|O{\"numA\":3,\"numB\":8}+"), connectionMock.lastSentMessage);
-        Assert.assertTrue( rpcResponse[0].success() );
-        Assert.assertEquals( rpcResponse[0].getData(), (float) 11.0 );
+        Assert.assertTrue(rpcResponse[0].success());
+        Assert.assertEquals(rpcResponse[0].getData(), (float) 11.0);
     }
 
     @Test
@@ -158,21 +158,21 @@ public class RpcHandlerTest {
             }
         }).start();
 
-        Thread.sleep( 20 );
+        Thread.sleep(20);
         Assert.assertEquals(TestUtil.replaceSeperators("P|REQ|addTwo|1|O{\"numA\":3,\"numB\":8}+"), connectionMock.lastSentMessage);
 
         rpcHandler.handle(new Message(
                 "raw",
                 Topic.RPC,
                 Actions.ERROR,
-                new String[]{ "NO_PROVIDER", "addTwo", "1" }
+                new String[]{"NO_PROVIDER", "addTwo", "1"}
         ));
 
-        Thread.sleep( 20 );
+        Thread.sleep(20);
 
         Assert.assertEquals(TestUtil.replaceSeperators("P|REQ|addTwo|1|O{\"numA\":3,\"numB\":8}+"), connectionMock.lastSentMessage);
-        Assert.assertFalse( rpcResponse[0].success() );
-        Assert.assertEquals( rpcResponse[0].getData(), "NO_PROVIDER" );
+        Assert.assertFalse(rpcResponse[0].success());
+        Assert.assertEquals(rpcResponse[0].getData(), "NO_PROVIDER");
     }
 
     @Test
@@ -190,10 +190,10 @@ public class RpcHandlerTest {
         }).start();
 
         Thread.sleep(200);
-        Assert.assertEquals( TestUtil.replaceSeperators("P|REQ|addTwo|1|O{\"numA\":3,\"numB\":8}+"), connectionMock.lastSentMessage);
+        Assert.assertEquals(TestUtil.replaceSeperators("P|REQ|addTwo|1|O{\"numA\":3,\"numB\":8}+"), connectionMock.lastSentMessage);
         Thread.sleep(250);
 
-        verify(this.errorCallbackMock, times(1)).onException( Topic.RPC, Event.ACK_TIMEOUT, "No ACK message received in time for REQUEST 1" );
+        verify(this.errorCallbackMock, times(1)).onException(Topic.RPC, Event.ACK_TIMEOUT, "No ACK message received in time for REQUEST 1");
     }
 
     @Test
@@ -210,11 +210,11 @@ public class RpcHandlerTest {
             }
         }).start();
 
-        Thread.sleep( 20 );
-        Assert.assertEquals( TestUtil.replaceSeperators("P|REQ|addTwo|1|O{\"numA\":3,\"numB\":8}+"), connectionMock.lastSentMessage);
+        Thread.sleep(20);
+        Assert.assertEquals(TestUtil.replaceSeperators("P|REQ|addTwo|1|O{\"numA\":3,\"numB\":8}+"), connectionMock.lastSentMessage);
 
         Thread.sleep(100);
-        Assert.assertFalse( rpcResponse[0].success() );
-        Assert.assertEquals( rpcResponse[0].getData(),Event.RESPONSE_TIMEOUT.toString() );
+        Assert.assertFalse(rpcResponse[0].success());
+        Assert.assertEquals(rpcResponse[0].getData(), Event.RESPONSE_TIMEOUT.toString());
     }
 }

@@ -11,10 +11,11 @@ import com.google.j2objc.annotations.ObjectiveCName;
 public class AnonymousRecordUninitialized extends Exception {
     /**
      * This Exception is thrown by {@see AnonymousRecord} and should not be constructed by consumers of this library
+     *
      * @param methodName The method name that was called
      */
     @ObjectiveCName("init:")
     AnonymousRecordUninitialized(String methodName) {
-        super( "Can`t invoke " + methodName + ". AnonymousRecord not initialised. Call setName first" );
+        super("Can`t invoke " + methodName + ". AnonymousRecord not initialised. Call setName first");
     }
 }

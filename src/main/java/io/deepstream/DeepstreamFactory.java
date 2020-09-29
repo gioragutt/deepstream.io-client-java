@@ -14,7 +14,7 @@ import java.util.Properties;
  * Currently this only contains a single deepstream client;
  */
 public class DeepstreamFactory {
-    private static DeepstreamFactory ourInstance = new DeepstreamFactory();
+    private static final DeepstreamFactory ourInstance = new DeepstreamFactory();
     Map<String, DeepstreamClient> clients;
     String lastUrl;
 
@@ -57,7 +57,7 @@ public class DeepstreamFactory {
         DeepstreamClient client = this.clients.get(url);
         this.lastUrl = url;
         if (clientDoesNotExist(client)) {
-            client = new DeepstreamClient(url,  new DeepstreamConfig(), new JavaEndpointFactory());
+            client = new DeepstreamClient(url, new DeepstreamConfig(), new JavaEndpointFactory());
             this.clients.put(url, client);
         }
         return client;

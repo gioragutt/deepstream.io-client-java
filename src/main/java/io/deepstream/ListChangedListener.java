@@ -9,8 +9,9 @@ import com.google.j2objc.annotations.ObjectiveCName;
 public interface ListChangedListener {
     /**
      * Notified whenever the entries in the list change
+     *
      * @param listName The name of list
-     * @param entries A list containing all the record names
+     * @param entries  A list containing all the record names
      */
     @ObjectiveCName("onListChanged:entries:")
     void onListChanged(String listName, String[] entries);

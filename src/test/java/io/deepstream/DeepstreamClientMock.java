@@ -14,7 +14,7 @@ public class DeepstreamClientMock extends DeepstreamClientAbstract {
         this.connectionListeners = new ArrayList<ConnectionStateListener>();
     }
 
-    public DeepstreamClientMock addConnectionChangeListener( ConnectionStateListener connectionStateListener) {
+    public DeepstreamClientMock addConnectionChangeListener(ConnectionStateListener connectionStateListener) {
         connectionListeners.add(connectionStateListener);
         return this;
     }
@@ -27,14 +27,21 @@ public class DeepstreamClientMock extends DeepstreamClientAbstract {
         return this.connectionState;
     }
 
+    public void setConnectionState(ConnectionState state) {
+        this.connectionState = state;
+        for (ConnectionStateListener listener : this.connectionListeners) {
+            listener.connectionStateChanged(state);
+        }
+    }
+
     @Override
     LoginResult login() {
-        return new LoginResult( true, new HashMap());
+        return new LoginResult(true, new HashMap());
     }
 
     @Override
     LoginResult login(JsonElement data) {
-        return new LoginResult( true, new HashMap());
+        return new LoginResult(true, new HashMap());
     }
 
     @Override
@@ -44,12 +51,5 @@ public class DeepstreamClientMock extends DeepstreamClientAbstract {
 
     public String getUid() {
         return "1";
-    }
-
-    public void setConnectionState( ConnectionState state ) {
-        this.connectionState = state;
-        for ( ConnectionStateListener listener : this.connectionListeners ) {
-            listener.connectionStateChanged( state );
-        }
     }
 }

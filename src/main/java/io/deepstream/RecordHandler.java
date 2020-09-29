@@ -1,6 +1,9 @@
 package io.deepstream;
 
-import com.google.gson.*;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import com.google.j2objc.annotations.ObjectiveCName;
 
 import java.util.HashMap;
@@ -33,8 +36,8 @@ public class RecordHandler {
      * is exposed as client.record
      *
      * @param deepstreamConfig The deepstreamConfig the client was created with
-     * @param connection The connection
-     * @param client The deepstream client
+     * @param connection       The connection
+     * @param client           The deepstream client
      */
     @ObjectiveCName("init:connection:client:")
     RecordHandler(DeepstreamConfig deepstreamConfig, IConnection connection, DeepstreamClientAbstract client) {
@@ -56,17 +59,18 @@ public class RecordHandler {
     /**
      * Returns an existing record or creates a new one. If creating a new one the record
      * will not be in a ready state till it is loaded from the server.
+     *
      * @param name The name of the record to get
      * @return Record The record
      */
     @ObjectiveCName("getRecord:")
-    public Record getRecord( String name ) {
+    public Record getRecord(String name) {
         Record record = null;
 
         recordsLock.lock();
         try {
-            record = records.get( name );
-            if( record == null ) {
+            record = records.get(name);
+            if (record == null) {
                 record = createRecord(name);
                 recordsLock.unlock();
                 record.start();
@@ -105,7 +109,7 @@ public class RecordHandler {
         return record;
     }
 
-    Record createRecord (String name) {
+    Record createRecord(String name) {
         Record record = new Record(name, new HashMap(), connection, deepstreamConfig, client);
         record.addRecordEventsListener(recordHandlerListeners);
         record.addRecordDestroyPendingListener(recordHandlerListeners);
@@ -122,7 +126,7 @@ public class RecordHandler {
      * @return List The List
      */
     @ObjectiveCName("getList:")
-    public List getList( String name ) {
+    public List getList(String name) {
         synchronized (lists) {
             List list = lists.get(name);
             if (list == null) {
@@ -137,33 +141,33 @@ public class RecordHandler {
      * Returns an anonymous record. A anonymous record is effectively
      * a wrapper that mimicks the API of a record, but allows for the
      * underlying record to be swapped without losing subscriptions etc.<br/>
-     *
+     * <p>
      * This is particularly useful when selecting from a number of similarly
      * structured records. E.g. a list of users that can be choosen from a list<br/>
-     *
+     * <p>
      * The only API differences to a normal record is an additional {@link AnonymousRecord#setName(String)} method
      *
      * @return AnonymousRecord
      */
     public AnonymousRecord getAnonymousRecord() {
-        return new AnonymousRecord( this );
+        return new AnonymousRecord(this);
     }
 
     /**
      * Allows to listen for record subscriptions made by this or other clients. This
      * is useful to create "active" data providers, e.g. providers that only provide
      * data for a particular record if a user is actually interested in it.<br/>
-     *
+     * <p>
      * You can only listen to a pattern once, and if multiple listeners match the same pattern only
      * a single one will be notified!
      *
-     * @param pattern The pattern to match all records your interested in
+     * @param pattern        The pattern to match all records your interested in
      * @param listenCallback The listen callback when a match has been found or removed.
      */
     @ObjectiveCName("listen:listenCallback:")
-    public void listen( String pattern, ListenListener listenCallback ) {
+    public void listen(String pattern, ListenListener listenCallback) {
         synchronized (listeners) {
-            if (listeners.containsKey( pattern )) {
+            if (listeners.containsKey(pattern)) {
                 client.onError(Topic.RECORD, Event.LISTENER_EXISTS, pattern);
             } else {
                 UtilListener utilListener = new UtilListener(Topic.RECORD, pattern, listenCallback, deepstreamConfig, client, connection);
@@ -179,18 +183,18 @@ public class RecordHandler {
      * @param pattern The pattern to stop listening to
      */
     @ObjectiveCName("unlisten:")
-    public void unlisten( String pattern ) {
-        UtilListener listener = listeners.remove( pattern );
-        if( listener != null ) {
+    public void unlisten(String pattern) {
+        UtilListener listener = listeners.remove(pattern);
+        if (listener != null) {
             listener.destroy();
         } else {
-            client.onError( Topic.RECORD, Event.NOT_LISTENING, pattern );
+            client.onError(Topic.RECORD, Event.NOT_LISTENING, pattern);
         }
     }
 
     /**
      * Retrieve the current record data without subscribing to changes<br/>
-     *
+     * <p>
      * If the record does not exist an error will be thrown
      *
      * @param name The name of the record which state to retrieve
@@ -202,7 +206,7 @@ public class RecordHandler {
 
         final Record record = records.get(name);
 
-        if( record != null && record.isReady() ) {
+        if (record != null && record.isReady()) {
             data[0] = record.get();
         } else {
             final CountDownLatch snapshotLatch = new CountDownLatch(1);
@@ -238,9 +242,9 @@ public class RecordHandler {
      * is a forceful set and will override any remote data
      *
      * @param recordName name of record to set
-     * @param data the data the record will be set to. Make sure that the Object passed
-     *             in can be serialised to a JsonElement, such as {@link Map}. Since this
-     *             is a root the object should also not be a primitive.
+     * @param data       the data the record will be set to. Make sure that the Object passed
+     *                   in can be serialised to a JsonElement, such as {@link Map}. Since this
+     *                   is a root the object should also not be a primitive.
      * @return The RecordHandler
      */
     @ObjectiveCName("setData:data:")
@@ -253,8 +257,8 @@ public class RecordHandler {
      * is a forceful set and will override any remote data
      *
      * @param recordName name of record to set
-     * @param path the path the data will be written to
-     * @param data the data the record will be set to
+     * @param path       the path the data will be written to
+     * @param data       the data the record will be set to
      * @return The RecordHandler
      */
     @ObjectiveCName("setData:path:data:")
@@ -267,24 +271,22 @@ public class RecordHandler {
      * for a record.
      *
      * @param recordName name of record to set
-     * @param version version to set the record to. If -1 then record data is overwritten
-     * @param path the path the data will be written to
-     * @param value the data the record will be set to
+     * @param version    version to set the record to. If -1 then record data is overwritten
+     * @param path       the path the data will be written to
+     * @param value      the data the record will be set to
      * @return The RecordHandler
      */
     @ObjectiveCName("setData:version:path:data:")
     public RecordHandler setData(String recordName, int version, String path, Object value) {
         JsonElement element;
-        if( value instanceof String ) {
+        if (value instanceof String) {
             element = new JsonPrimitive((String) value);
-        }
-        else if( value instanceof Number ) {
+        } else if (value instanceof Number) {
             element = new JsonPrimitive((Number) value);
-        }
-        else if( value instanceof Boolean ) {
+        } else if (value instanceof Boolean) {
             element = new JsonPrimitive((Boolean) value);
         } else {
-            element = deepstreamConfig.getJsonParser().toJsonTree( value );
+            element = deepstreamConfig.getJsonParser().toJsonTree(value);
         }
 
         Record record = this.records.get(recordName);
@@ -301,11 +303,11 @@ public class RecordHandler {
         String remoteMessage;
         if (path == null) {
             remoteMessage = MessageBuilder.getMsg(
-                    Topic.RECORD, Actions.CREATEANDUPDATE, new String[]{ recordName, String.valueOf(version), element.toString(), config.toString() }
+                    Topic.RECORD, Actions.CREATEANDUPDATE, new String[]{recordName, String.valueOf(version), element.toString(), config.toString()}
             );
         } else {
             remoteMessage = MessageBuilder.getMsg(
-                    Topic.RECORD, Actions.CREATEANDUPDATE, new String[]{ recordName, String.valueOf(version), path, MessageBuilder.typed(element), config.toString() }
+                    Topic.RECORD, Actions.CREATEANDUPDATE, new String[]{recordName, String.valueOf(version), path, MessageBuilder.typed(element), config.toString()}
             );
         }
         this.connection.send(remoteMessage);
@@ -318,7 +320,7 @@ public class RecordHandler {
      * overwrite any remote data.
      *
      * @param recordName the name of the record being set.
-     * @param value the value to set the record to
+     * @param value      the value to set the record to
      * @return RecordSetResult the result of the write
      */
     @ObjectiveCName("setDataWithAck:value:")
@@ -332,8 +334,8 @@ public class RecordHandler {
      * overwrite any remote data.
      *
      * @param recordName the name of the record being set.
-     * @param path the path of the record being set
-     * @param value the value to set the record to
+     * @param path       the path of the record being set
+     * @param value      the value to set the record to
      * @return RecordSetResult the result of the write
      */
     @ObjectiveCName("setDataWithAck:path:value:")
@@ -346,9 +348,9 @@ public class RecordHandler {
      * will be returned with the state of the write.
      *
      * @param recordName the name of the record being set.
-     * @param path the path of the record being set
-     * @param version the version to set the record to
-     * @param value the value to set the record to
+     * @param path       the path of the record being set
+     * @param version    the version to set the record to
+     * @param value      the value to set the record to
      * @return RecordSetResult the result of the write
      */
     @ObjectiveCName("setDataWithAck:path:version:value:")
@@ -362,26 +364,24 @@ public class RecordHandler {
             }
         }
         JsonElement element;
-        if( value instanceof String ) {
+        if (value instanceof String) {
             element = new JsonPrimitive((String) value);
-        }
-        else if( value instanceof Number ) {
+        } else if (value instanceof Number) {
             element = new JsonPrimitive((Number) value);
-        }
-        else if( value instanceof Boolean ) {
+        } else if (value instanceof Boolean) {
             element = new JsonPrimitive((Boolean) value);
         } else {
-            element = deepstreamConfig.getJsonParser().toJsonTree( value );
+            element = deepstreamConfig.getJsonParser().toJsonTree(value);
         }
 
         JsonObject config = new JsonObject();
         config.addProperty("writeSuccess", true);
 
         String[] data;
-        if( path == null ) {
-            data = new String[]{ recordName, String.valueOf(version), element.toString(), config.toString() };
+        if (path == null) {
+            data = new String[]{recordName, String.valueOf(version), element.toString(), config.toString()};
         } else {
-            data = new String[]{ recordName, String.valueOf(version), path, MessageBuilder.typed(value), config.toString() };
+            data = new String[]{recordName, String.valueOf(version), path, MessageBuilder.typed(value), config.toString()};
         }
 
         final RecordSetResult[] result = new RecordSetResult[1];
@@ -389,13 +389,13 @@ public class RecordHandler {
         this.recordSetNotifier.request(String.valueOf(version), Actions.CREATEANDUPDATE, data, new UtilSingleNotifier.UtilSingleNotifierCallback() {
             @Override
             public void onSingleNotifierError(String name, DeepstreamError error) {
-                result[0] = new RecordSetResult( error.getMessage() );
+                result[0] = new RecordSetResult(error.getMessage());
                 snapshotLatch.countDown();
             }
 
             @Override
             public void onSingleNotifierResponse(String name, Object data) {
-                result[0] = new RecordSetResult( null );
+                result[0] = new RecordSetResult(null);
                 snapshotLatch.countDown();
             }
         });
@@ -409,7 +409,7 @@ public class RecordHandler {
 
     /**
      * Allows the user to query to see whether or not the record exists<br/>
-     *
+     * <p>
      * If the record is created locally the listener will be called sync, else
      * once the record is ready.<br/>
      *
@@ -420,8 +420,8 @@ public class RecordHandler {
         final DeepstreamError[] deepstreamException = new DeepstreamError[1];
         final boolean[] hasRecord = new boolean[1];
 
-        Record record = records.get( name );
-        if( record != null && record.isReady() ) {
+        Record record = records.get(name);
+        if (record != null && record.isReady()) {
             hasRecord[0] = true;
         } else {
             final CountDownLatch hasLatch = new CountDownLatch(1);
@@ -457,78 +457,78 @@ public class RecordHandler {
      * Will be called by the client for incoming messages on the RECORD topic
      */
     @ObjectiveCName("handle:")
-    protected void handle( Message message ) {
+    protected void handle(Message message) {
         Record record;
         boolean processed = false;
         String recordName;
 
-        if( isUnhandledError( message ) ) {
-            client.onError( Topic.RECORD, Event.getEvent( message.data[ 0 ] ), message.data[ 1 ] );
+        if (isUnhandledError(message)) {
+            client.onError(Topic.RECORD, Event.getEvent(message.data[0]), message.data[1]);
             return;
         }
 
-        if( message.action == Actions.ACK || message.action == Actions.ERROR) {
-            recordName = message.data[ 1 ];
+        if (message.action == Actions.ACK || message.action == Actions.ERROR) {
+            recordName = message.data[1];
 
-            if( isDiscardAck( message ) ) {
+            if (isDiscardAck(message)) {
                 //TODO: destroyEventEmitter.emit( "destroy_ack_" + recordName, message );
 
-                record = records.get( recordName );
-                if( Actions.getAction( message.data[ 0 ] ) == Actions.DELETE && record != null ) {
-                    record.onMessage( message );
+                record = records.get(recordName);
+                if (Actions.getAction(message.data[0]) == Actions.DELETE && record != null) {
+                    record.onMessage(message);
                 }
 
                 return;
             }
 
-            if( message.data[ 0 ].equals( Actions.SNAPSHOT.toString() ) ) {
+            if (message.data[0].equals(Actions.SNAPSHOT.toString())) {
                 snapshotRegistry.receive(recordName, new DeepstreamError(message.data[2]), null);
                 return;
             }
 
-            if( message.data[ 0 ].equals(Actions.HAS.toString() ))  {
+            if (message.data[0].equals(Actions.HAS.toString())) {
                 hasRegistry.receive(recordName, new DeepstreamError(message.data[2]), null);
                 return;
             }
         } else {
-            recordName = message.data[ 0 ];
+            recordName = message.data[0];
         }
 
-        record = records.get( recordName );
-        if( record != null ) {
+        record = records.get(recordName);
+        if (record != null) {
             processed = true;
-            record.onMessage( message );
+            record.onMessage(message);
         }
 
-        if( message.action == Actions.READ && snapshotRegistry.hasRequest( recordName )) {
+        if (message.action == Actions.READ && snapshotRegistry.hasRequest(recordName)) {
             processed = true;
-            snapshotRegistry.receive( recordName, null, MessageParser.parseObject(message.data[2], deepstreamConfig.getJsonParser()));
+            snapshotRegistry.receive(recordName, null, MessageParser.parseObject(message.data[2], deepstreamConfig.getJsonParser()));
         }
 
-        if( message.action == Actions.HAS && hasRegistry.hasRequest( recordName )) {
+        if (message.action == Actions.HAS && hasRegistry.hasRequest(recordName)) {
             processed = true;
-            hasRegistry.receive( recordName, null, MessageParser.convertTyped(message.data[1], client, deepstreamConfig.getJsonParser()));
+            hasRegistry.receive(recordName, null, MessageParser.convertTyped(message.data[1], client, deepstreamConfig.getJsonParser()));
         }
 
         if (message.action == Actions.WRITE_ACKNOWLEDGEMENT && !processed) {
             processed = true;
             String val = String.valueOf(message.data[1]);
-            Object versions = deepstreamConfig.getJsonParser().fromJson( val, JsonArray.class );
+            Object versions = deepstreamConfig.getJsonParser().fromJson(val, JsonArray.class);
             Object error = MessageParser.convertTyped(message.data[2], this.client, deepstreamConfig.getJsonParser());
-            if( error != null ) {
+            if (error != null) {
                 this.recordSetNotifier.receive((JsonArray) versions, new DeepstreamError((String) error));
             } else {
                 this.recordSetNotifier.receive((JsonArray) versions, null);
             }
         }
 
-        UtilListener listener = listeners.get( recordName );
-        if( listener != null ) {
+        UtilListener listener = listeners.get(recordName);
+        if (listener != null) {
             processed = true;
-            listener.onMessage( message );
+            listener.onMessage(message);
         }
 
-        if( !processed ) {
+        if (!processed) {
             client.onError(Topic.RECORD, Event.UNSOLICITED_MESSAGE, String.format("%s %s", message.action, recordName));
         }
     }
@@ -536,29 +536,29 @@ public class RecordHandler {
     /**
      * The following methods checks to prevent errors that occur when a record is discarded or deleted and
      * recreated before the discard / delete ack message is received.
-     *
+     * <p>
      * A (presumably unsolvable) problem remains when a client deletes a record in the exact moment
      * between another clients creation and read message for the same record
      */
     @ObjectiveCName("isDiscardAck:")
-    private boolean isDiscardAck( Message message ) {
-        Event event = Event.getEvent( message.data[ 0 ] );
-        if( event == Event.MESSAGE_DENIED && Actions.getAction(message.data[ 2 ] ) == Actions.DELETE ) {
+    private boolean isDiscardAck(Message message) {
+        Event event = Event.getEvent(message.data[0]);
+        if (event == Event.MESSAGE_DENIED && Actions.getAction(message.data[2]) == Actions.DELETE) {
             return true;
         }
 
-        Actions action = Actions.getAction( message.data[ 0 ] );
+        Actions action = Actions.getAction(message.data[0]);
 
         return action == Actions.DELETE || action == Actions.UNSUBSCRIBE;
     }
 
     @ObjectiveCName("isUnhandledError:")
     private Boolean isUnhandledError(Message message) {
-        if( message.action != Actions.ERROR ) {
+        if (message.action != Actions.ERROR) {
             return false;
         }
 
-        String errorType =  message.data[ 0 ];
+        String errorType = message.data[0];
         return !(errorType.equals(Event.VERSION_EXISTS.toString())
                 || errorType.equals(Event.MESSAGE_DENIED.toString())
                 || errorType.equals(Actions.SNAPSHOT.toString())

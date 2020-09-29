@@ -1,11 +1,13 @@
 package io.deepstream;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import com.google.j2objc.annotations.ObjectiveCName;
 
-import com.google.gson.JsonElement;
-
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * A List is a specialised Record that contains
@@ -22,14 +24,15 @@ public class List {
 
     /**
      * Constructor is not public since it is created via {@link RecordHandler#getList(String)}
+     *
      * @param recordHandler The recordHandler to get the underlying record
-     * @param name The list name
+     * @param name          The list name
      */
 
     @ObjectiveCName("init:name:")
     List(RecordHandler recordHandler, String name) {
-        this.record = recordHandler.getRecord( name );
-        this.recordListeners = new List.RecordListeners( this, this.record );
+        this.record = recordHandler.getRecord(name);
+        this.recordListeners = new List.RecordListeners(this, this.record);
         this.listChangedListeners = new ArrayList<ListChangedListener>();
         this.listEntryChangedListeners = new ArrayList<ListEntryChangedListener>();
         this.gson = new Gson();
@@ -75,58 +78,47 @@ public class List {
 
     /**
      * Adds a Listener that will notify you if a Discard, Delete or Error event occurs
+     *
      * @param recordEventsListener The listener to add
      * @return The list
      */
     @ObjectiveCName("addRecordEventsListener:")
-    public List addRecordEventsListener( RecordEventsListener recordEventsListener ) {
-        this.record.addRecordEventsListener( recordEventsListener );
+    public List addRecordEventsListener(RecordEventsListener recordEventsListener) {
+        this.record.addRecordEventsListener(recordEventsListener);
         return this;
     }
 
     /**
      * Remove listener added via {@link List#addRecordEventsListener(RecordEventsListener)}
+     *
      * @param recordEventsListener The listener to remove
      * @return The list
      */
     @ObjectiveCName("removeRecordEventsListener:")
     public List removeRecordEventsListener(RecordEventsListener recordEventsListener) {
-        this.record.removeRecordEventsListener( recordEventsListener );
+        this.record.removeRecordEventsListener(recordEventsListener);
         return this;
     }
 
     /**
      * Returns the array of list entries or an
      * empty array if the list hasn't been populated yet.
+     *
      * @return A List containing all the recordNames
      */
     @SuppressWarnings("unchecked")
     public String[] getEntries() {
         String[] entries = {};
         try {
-            entries = this.record.get( String[].class );
-        } catch( Exception ex ) {
-        }
-        return entries;
-    }
-
-    /**
-     * Returns the array of list entries or an
-     * empty array if the list hasn't been populated yet.
-     * @return A List containing all the recordNames
-     */
-    private ArrayList getEntriesArrayList() {
-        ArrayList<String> entries = null;
-        try {
-            entries = this.record.get( ArrayList.class );
-        } catch( Exception ex ) {
-            entries = new ArrayList<String>();
+            entries = this.record.get(String[].class);
+        } catch (Exception ex) {
         }
         return entries;
     }
 
     /**
      * Updates the list with a new set of entries
+     *
      * @param entries The recordNames to update the list with
      * @return The list
      */
@@ -137,66 +129,86 @@ public class List {
     }
 
     /**
+     * Returns the array of list entries or an
+     * empty array if the list hasn't been populated yet.
+     *
+     * @return A List containing all the recordNames
+     */
+    private ArrayList getEntriesArrayList() {
+        ArrayList<String> entries = null;
+        try {
+            entries = this.record.get(ArrayList.class);
+        } catch (Exception ex) {
+            entries = new ArrayList<String>();
+        }
+        return entries;
+    }
+
+    /**
      * Removes the first occurrence of an entry from the list
+     *
      * @param entry The entry to remove from the list
      * @return The list
      */
     @ObjectiveCName("removeEntry:")
-    public List removeEntry( String entry ) {
+    public List removeEntry(String entry) {
         java.util.List entries = this.getEntriesArrayList();
-        while( entries.contains( entry ) ) entries.remove( entry );
-        this.updateList((String[]) entries.toArray( new String[] {} ));
+        while (entries.contains(entry)) entries.remove(entry);
+        this.updateList((String[]) entries.toArray(new String[]{}));
         return this;
     }
 
     /**
      * Removes an entry from the list if it resides at
      * a specific index
+     *
      * @param entry The entry to remove from the list
      * @param index The index at which the entry should reside at
      * @return The list
      */
     @ObjectiveCName("removeEntry:index:")
-    public List removeEntry( String entry, int index ) {
+    public List removeEntry(String entry, int index) {
         ArrayList entries = this.getEntriesArrayList();
-        if( entries.get( index ).equals( entry ) ) {
-            entries.remove( index );
+        if (entries.get(index).equals(entry)) {
+            entries.remove(index);
         }
-        this.updateList((String[]) entries.toArray( new String[] {} ));
+        this.updateList((String[]) entries.toArray(new String[]{}));
         return this;
     }
 
     /**
      * Add an entry to the end of the list
+     *
      * @param entry The entry to add to the list
      * @return The list
      */
     @ObjectiveCName("addEntry:")
-    public List addEntry( String entry ) {
+    public List addEntry(String entry) {
         ArrayList entries = this.getEntriesArrayList();
-        entries.add( entry );
-        this.updateList((String[]) entries.toArray( new String[] {} ));
+        entries.add(entry);
+        this.updateList((String[]) entries.toArray(new String[]{}));
         return this;
     }
 
     /**
      * Add an entry at a certain index into the list
+     *
      * @param entry The entry to add to the list
      * @param index The index to add the entry to
      * @return The list
      */
     @ObjectiveCName("addEntry:index:")
-    public List addEntry( String entry, int index ) {
+    public List addEntry(String entry, int index) {
         java.util.List entries = this.getEntriesArrayList();
-        entries.add( index, entry );
-        this.updateList((String[]) entries.toArray( new String[] {} ));
+        entries.add(index, entry);
+        this.updateList((String[]) entries.toArray(new String[]{}));
         return this;
     }
 
     /**
      * Discard the List. This should be called whenever you are done with the List retrieved by {@link RecordHandler#getList(String)}.
      * This does not guarantee that your subscriptions have been unsubscribed, so make sure to do that first!<br/>
-     *
+     * <p>
      * If all usages of the same List have been discarded, the List will no longer be updated from the server and
      * any further usages will require the List to be retrieved again via {@link RecordHandler#getList(String)}<br/>
      *
@@ -210,6 +222,7 @@ public class List {
 
     /**
      * Returns true if the list is empty
+     *
      * @return true if this list contains no elements
      */
     public boolean isEmpty() {
@@ -218,29 +231,31 @@ public class List {
 
     /**
      * Notifies the user whenever the list has changed
+     *
      * @param listChangedListener The listener to add
      * @return The list
      */
     @ObjectiveCName("subscribe:")
     public List subscribe(ListChangedListener listChangedListener) {
-        return this.subscribe( listChangedListener, false );
+        return this.subscribe(listChangedListener, false);
     }
 
     /**
      * Notifies the user whenever the list has changed, and notifies immediately if triggerNow is true
+     *
      * @param listChangedListener The listener to add
-     * @param triggerNow Whether to trigger the listener immediately
+     * @param triggerNow          Whether to trigger the listener immediately
      * @return The list
      */
     @ObjectiveCName("subscribe:triggerNow:")
-    public List subscribe(ListChangedListener listChangedListener, boolean triggerNow ) {
-        this.listChangedListeners.add( listChangedListener );
+    public List subscribe(ListChangedListener listChangedListener, boolean triggerNow) {
+        this.listChangedListeners.add(listChangedListener);
 
-        if( this.listChangedListeners.size() == 1 ) {
-            this.record.subscribe( this.recordListeners );
+        if (this.listChangedListeners.size() == 1) {
+            this.record.subscribe(this.recordListeners);
         }
 
-        if( triggerNow ) {
+        if (triggerNow) {
             for (ListChangedListener listChangeListener : this.listChangedListeners) {
                 listChangeListener.onListChanged(this.name(), this.getEntries());
             }
@@ -251,6 +266,7 @@ public class List {
 
     /**
      * Removes the listener added via {@link List#subscribe(ListChangedListener, boolean)}
+     *
      * @param listChangedListener The listener to remove
      * @return The list
      */
@@ -258,8 +274,8 @@ public class List {
     public List unsubscribe(ListChangedListener listChangedListener) {
         this.listChangedListeners.remove(listChangedListener);
 
-        if( this.listChangedListeners.size() == 0 ) {
-            this.record.unsubscribe( this.recordListeners );
+        if (this.listChangedListeners.size() == 0) {
+            this.record.unsubscribe(this.recordListeners);
         }
 
         return this;
@@ -267,6 +283,7 @@ public class List {
 
     /**
      * Notifies the user whenever the list has changed
+     *
      * @param listEntryChangedListener The listener to add
      * @return The list
      */
@@ -274,8 +291,8 @@ public class List {
     public List subscribe(ListEntryChangedListener listEntryChangedListener) {
         this.listEntryChangedListeners.add(listEntryChangedListener);
 
-        if( this.listEntryChangedListeners.size() == 1 ) {
-            this.record.subscribe( this.recordListeners );
+        if (this.listEntryChangedListeners.size() == 1) {
+            this.record.subscribe(this.recordListeners);
         }
 
         return this;
@@ -283,6 +300,7 @@ public class List {
 
     /**
      * Removes the listener added via {@link List#subscribe(ListChangedListener, boolean)}
+     *
      * @param listEntryChangedListener The listener to remove
      * @return The list
      */
@@ -290,8 +308,8 @@ public class List {
     public List unsubscribe(ListEntryChangedListener listEntryChangedListener) {
         this.listEntryChangedListeners.remove(listEntryChangedListener);
 
-        if( this.listEntryChangedListeners.size() == 0 ) {
-            this.record.unsubscribe( this.recordListeners );
+        if (this.listEntryChangedListeners.size() == 0) {
+            this.record.unsubscribe(this.recordListeners);
         }
 
         return this;
@@ -310,19 +328,19 @@ public class List {
     @ObjectiveCName("updateList:")
     private void updateList(String[] entries) {
         Map<String, ArrayList<Integer>> oldStructure = this.beforeChange();
-        this.record.set( gson.toJsonTree(entries) );
-        this.afterChange( oldStructure );
+        this.record.set(gson.toJsonTree(entries));
+        this.afterChange(oldStructure);
     }
 
     /**
      * Establishes the current structure of the list, provided the client has attached any
      * add / move / remove listener
-     *
+     * <p>
      * This will be called before any change to the list, regardsless if the change was triggered
      * by an incoming message from the server or by the client
      */
-    private Map<String,ArrayList<Integer>> beforeChange() {
-        if( this.listChangedListeners.isEmpty() && this.listEntryChangedListeners.isEmpty() ) {
+    private Map<String, ArrayList<Integer>> beforeChange() {
+        if (this.listChangedListeners.isEmpty() && this.listEntryChangedListeners.isEmpty()) {
             return null;
         }
         return this.getStructure();
@@ -332,18 +350,18 @@ public class List {
      * Compares the structure of the list after a change to its previous structure and notifies
      * any add / move / remove listener. Won't do anything if no listeners are attached.
      */
-    private void afterChange( Map<String,ArrayList<Integer>> oldStructure ) {
-        if( oldStructure == null ) {
+    private void afterChange(Map<String, ArrayList<Integer>> oldStructure) {
+        if (oldStructure == null) {
             return;
         }
         Map<String, ArrayList<Integer>> newStructure = this.getStructure();
 
-        for( String entryName : oldStructure.keySet() ) {
-            ArrayList<Integer> oldIndexes = oldStructure.get( entryName );
-            ArrayList<Integer> newIndexes = newStructure.get( entryName );
+        for (String entryName : oldStructure.keySet()) {
+            ArrayList<Integer> oldIndexes = oldStructure.get(entryName);
+            ArrayList<Integer> newIndexes = newStructure.get(entryName);
 
-            for( Integer index : oldIndexes ) {
-                if( newIndexes == null ) {
+            for (Integer index : oldIndexes) {
+                if (newIndexes == null) {
                     for (ListEntryChangedListener listEntryChangedListener : this.listEntryChangedListeners) {
                         listEntryChangedListener.onEntryRemoved(this.name(), entryName, index);
                     }
@@ -351,21 +369,21 @@ public class List {
             }
         }
 
-        for( String entryName : newStructure.keySet() ) {
-            ArrayList<Integer> oldIndexes = oldStructure.get( entryName );
-            ArrayList<Integer> newIndexes = newStructure.get( entryName );
+        for (String entryName : newStructure.keySet()) {
+            ArrayList<Integer> oldIndexes = oldStructure.get(entryName);
+            ArrayList<Integer> newIndexes = newStructure.get(entryName);
 
-            if( oldIndexes == null ) {
-                for( Integer index : newIndexes ) {
+            if (oldIndexes == null) {
+                for (Integer index : newIndexes) {
                     for (ListEntryChangedListener listEntryChangedListener : this.listEntryChangedListeners) {
                         listEntryChangedListener.onEntryAdded(this.name(), entryName, index);
                     }
                 }
             } else {
-                for( int i=0; i<newIndexes.size(); i++ ) {
-                    Integer index = newIndexes.get( i );
-                    if( oldIndexes.size() <= i || !oldIndexes.get( i ).equals( newIndexes.get( i ) ) ) {
-                        if( oldIndexes.size() < i ) {
+                for (int i = 0; i < newIndexes.size(); i++) {
+                    Integer index = newIndexes.get(i);
+                    if (oldIndexes.size() <= i || !oldIndexes.get(i).equals(newIndexes.get(i))) {
+                        if (oldIndexes.size() < i) {
                             for (ListEntryChangedListener listEntryChangedListener : this.listEntryChangedListeners) {
                                 listEntryChangedListener.onEntryAdded(this.name(), entryName, index);
                             }
@@ -383,24 +401,24 @@ public class List {
     /**
      * Iterates through the list and creates a map with the entry as a key
      * and an array of its position(s) within the list as a value, e.g.
-     *
+     * <p>
      * {
-     * 	'recordA': [ 0, 3 ],
-     * 	'recordB': [ 1 ],
-     * 	'recordC': [ 2 ]
+     * 'recordA': [ 0, 3 ],
+     * 'recordB': [ 1 ],
+     * 'recordC': [ 2 ]
      * }
      */
-    private Map<String,ArrayList<Integer>> getStructure() {
+    private Map<String, ArrayList<Integer>> getStructure() {
         Map<String, ArrayList<Integer>> structure = new HashMap<String, ArrayList<Integer>>();
         java.util.List<String> entries = Arrays.asList(this.getEntries());
 
-        for( int i=0; i<entries.size();i++) {
-            ArrayList<Integer> list = structure.get( entries.get(i) );
-            if( list == null ) {
+        for (int i = 0; i < entries.size(); i++) {
+            ArrayList<Integer> list = structure.get(entries.get(i));
+            if (list == null) {
                 list = new ArrayList<Integer>();
-                structure.put( entries.get( i ), list );
+                structure.put(entries.get(i), list);
             }
-            list.add( i );
+            list.add(i);
         }
 
         return structure;
@@ -416,10 +434,10 @@ public class List {
         private Map<String, ArrayList<Integer>> beforeChange;
 
         @ObjectiveCName("init:record:")
-        RecordListeners( List list, Record record ) {
+        RecordListeners(List list, Record record) {
             this.list = list;
             this.record = record;
-            this.record.setRecordRemoteUpdateHandler( this );
+            this.record.setRecordRemoteUpdateHandler(this);
         }
 
         @Override
@@ -437,7 +455,7 @@ public class List {
 
         @Override
         public void afterRecordUpdate() {
-            this.list.afterChange( this.beforeChange );
+            this.list.afterChange(this.beforeChange);
         }
 
     }

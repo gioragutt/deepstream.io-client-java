@@ -25,13 +25,13 @@ public class DeepstreamException extends RuntimeException {
     public String message;
 
     @ObjectiveCName("init:")
-    DeepstreamException(String message ) {
-        super( message );
+    DeepstreamException(String message) {
+        super(message);
     }
 
     @ObjectiveCName("init:event:message:")
     DeepstreamException(Topic topic, Event event, String message) {
-        super( event + ": " + message );
+        super(event + ": " + message);
         this.topic = topic;
         this.event = event;
         this.message = message;

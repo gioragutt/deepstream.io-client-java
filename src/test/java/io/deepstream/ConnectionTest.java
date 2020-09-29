@@ -12,7 +12,7 @@ import java.net.URISyntaxException;
 import static junit.framework.TestCase.assertEquals;
 import static org.mockito.Mockito.*;
 
-@RunWith( JUnit4.class )
+@RunWith(JUnit4.class)
 public class ConnectionTest {
 
     String originalUrl = "originalProtocol://originalHost:originalPort";
@@ -29,12 +29,12 @@ public class ConnectionTest {
 
         this.endpointMock = new EndpointMock(originalUrl, this.connection);
         this.connection = new Connection(originalUrl, new DeepstreamConfig(), this.deepstreamClientMock, this.endpointMock);
-        this.endpointMock.setConnection( this.connection );
+        this.endpointMock.setConnection(this.connection);
 
         this.connectionStateListenerMock = mock(ConnectionStateListener.class);
-        this.loginCallback = mock( DeepstreamClient.LoginCallback.class );
+        this.loginCallback = mock(DeepstreamClient.LoginCallback.class);
 
-        this.connection.addConnectionChangeListener( this.connectionStateListenerMock);
+        this.connection.addConnectionChangeListener(this.connectionStateListenerMock);
     }
 
     @After
@@ -45,13 +45,13 @@ public class ConnectionTest {
     @Test
     public void initialState() {
         this.endpointMock.sendOpenEvent();
-        verifyConnectionState( ConnectionState.AWAITING_CONNECTION );
+        verifyConnectionState(ConnectionState.AWAITING_CONNECTION);
     }
 
     @Test
     public void challengeReceivedSendsOriginalUrl() {
-        this.endpointMock.sendMessage( MessageBuilder.getMsg(Topic.CONNECTION, Actions.CHALLENGE) );
-        verifyConnectionState( ConnectionState.CHALLENGING );
+        this.endpointMock.sendMessage(MessageBuilder.getMsg(Topic.CONNECTION, Actions.CHALLENGE));
+        verifyConnectionState(ConnectionState.CHALLENGING);
         assertEquals(endpointMock.lastSentMessage, MessageBuilder.getMsg(Topic.CONNECTION, Actions.CHALLENGE_RESPONSE, originalUrl));
     }
 
@@ -62,63 +62,63 @@ public class ConnectionTest {
 
     @Test
     public void challengeAck() {
-        this.endpointMock.sendMessage( MessageBuilder.getMsg(Topic.CONNECTION, Actions.ACK) );
-        verifyConnectionState( ConnectionState.AWAITING_AUTHENTICATION );
+        this.endpointMock.sendMessage(MessageBuilder.getMsg(Topic.CONNECTION, Actions.ACK));
+        verifyConnectionState(ConnectionState.AWAITING_AUTHENTICATION);
     }
 
     @Test
     public void sendingAuthentication() throws Exception {
         this.challengeAck();
         JsonObject authParams = new JsonObject();
-        authParams.addProperty( "name", "Yasser" );
-        connection.authenticate( authParams, loginCallback );
+        authParams.addProperty("name", "Yasser");
+        connection.authenticate(authParams, loginCallback);
 
-        assertEquals(endpointMock.lastSentMessage, MessageBuilder.getMsg( Topic.AUTH, Actions.REQUEST, "{\"name\":\"Yasser\"}" ));
-        verifyConnectionState( ConnectionState.AUTHENTICATING );
+        assertEquals(endpointMock.lastSentMessage, MessageBuilder.getMsg(Topic.AUTH, Actions.REQUEST, "{\"name\":\"Yasser\"}"));
+        verifyConnectionState(ConnectionState.AUTHENTICATING);
     }
 
     @Test
     public void sendingAuthenticationWithNoParams() throws Exception {
         this.challengeAck();
         JsonObject authParams = new JsonObject();
-        connection.authenticate( authParams, loginCallback );
+        connection.authenticate(authParams, loginCallback);
 
-        assertEquals(endpointMock.lastSentMessage, MessageBuilder.getMsg( Topic.AUTH, Actions.REQUEST, "{}" ));
-        verifyConnectionState( ConnectionState.AUTHENTICATING );
+        assertEquals(endpointMock.lastSentMessage, MessageBuilder.getMsg(Topic.AUTH, Actions.REQUEST, "{}"));
+        verifyConnectionState(ConnectionState.AUTHENTICATING);
     }
 
     @Test
     public void gettingValidAuthenticationBack() throws Exception {
         this.sendingAuthentication();
 
-        endpointMock.sendMessage( MessageBuilder.getMsg(Topic.AUTH, Actions.ACK) );
+        endpointMock.sendMessage(MessageBuilder.getMsg(Topic.AUTH, Actions.ACK));
 
-        verifyConnectionState( ConnectionState.OPEN );
-        verify( loginCallback, times( 1 ) ).loginSuccess( null );
+        verifyConnectionState(ConnectionState.OPEN);
+        verify(loginCallback, times(1)).loginSuccess(null);
     }
 
     @Test
     public void gettingInValidAuthenticationBack() throws Exception {
         this.sendingAuthentication();
 
-        endpointMock.sendMessage( MessageBuilder.getMsg(Topic.AUTH, Actions.ERROR, Event.NOT_AUTHENTICATED.toString(), "SFail" ));
+        endpointMock.sendMessage(MessageBuilder.getMsg(Topic.AUTH, Actions.ERROR, Event.NOT_AUTHENTICATED.toString(), "SFail"));
 
-        verifyConnectionState( ConnectionState.AWAITING_AUTHENTICATION );
-        verify( loginCallback, times( 1 ) ).loginFailed( Event.NOT_AUTHENTICATED, "Fail" );
+        verifyConnectionState(ConnectionState.AWAITING_AUTHENTICATION);
+        verify(loginCallback, times(1)).loginFailed(Event.NOT_AUTHENTICATED, "Fail");
     }
 
     @Test
-    public void errorsWhenTooManyAuthAttempts() throws  Exception {
+    public void errorsWhenTooManyAuthAttempts() throws Exception {
         this.sendingAuthentication();
 
-        endpointMock.sendMessage( MessageBuilder.getMsg( Topic.AUTH, Actions.ERROR, Event.TOO_MANY_AUTH_ATTEMPTS.toString(), "STOO_MANY_AUTH_ATTEMPTS" ));
-        verify( loginCallback, times( 1 ) ).loginFailed(  Event.TOO_MANY_AUTH_ATTEMPTS, "TOO_MANY_AUTH_ATTEMPTS" );
+        endpointMock.sendMessage(MessageBuilder.getMsg(Topic.AUTH, Actions.ERROR, Event.TOO_MANY_AUTH_ATTEMPTS.toString(), "STOO_MANY_AUTH_ATTEMPTS"));
+        verify(loginCallback, times(1)).loginFailed(Event.TOO_MANY_AUTH_ATTEMPTS, "TOO_MANY_AUTH_ATTEMPTS");
 
         JsonObject authParams = new JsonObject();
-        authParams.addProperty( "name", "Yasser" );
+        authParams.addProperty("name", "Yasser");
 
-        connection.authenticate( authParams, loginCallback );
-        verify( deepstreamClientMock, times( 1 ) ).onError( Topic.ERROR, Event.IS_CLOSED, "The client\'s connection was closed" );
+        connection.authenticate(authParams, loginCallback);
+        verify(deepstreamClientMock, times(1)).onError(Topic.ERROR, Event.IS_CLOSED, "The client\'s connection was closed");
     }
 
     @Test
@@ -126,14 +126,14 @@ public class ConnectionTest {
         this.sendingAuthentication();
         JsonObject data = new JsonObject();
         data.addProperty("favouriteColour", "red");
-        endpointMock.sendMessage( MessageBuilder.getMsg(Topic.AUTH, Actions.ACK, "O" + data.toString() ) );
+        endpointMock.sendMessage(MessageBuilder.getMsg(Topic.AUTH, Actions.ACK, "O" + data.toString()));
 
-        verifyConnectionState( ConnectionState.OPEN );
-        verify( loginCallback, times( 1 ) ).loginSuccess( data );
+        verifyConnectionState(ConnectionState.OPEN);
+        verify(loginCallback, times(1)).loginSuccess(data);
     }
 
-    private void verifyConnectionState( ConnectionState connectionState) {
-        assertEquals( this.connection.getConnectionState(), connectionState);
-        verify( this.connectionStateListenerMock, atLeastOnce() ).connectionStateChanged(connectionState);
+    private void verifyConnectionState(ConnectionState connectionState) {
+        assertEquals(this.connection.getConnectionState(), connectionState);
+        verify(this.connectionStateListenerMock, atLeastOnce()).connectionStateChanged(connectionState);
     }
 }

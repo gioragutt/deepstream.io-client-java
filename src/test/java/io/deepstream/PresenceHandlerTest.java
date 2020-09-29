@@ -7,13 +7,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.net.URISyntaxException;
-import java.util.ArrayList;
 import java.util.Properties;
-import java.util.StringTokenizer;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 public class PresenceHandlerTest {
 
@@ -25,17 +21,17 @@ public class PresenceHandlerTest {
 
     @Before
     public void setUp() throws URISyntaxException, InvalidDeepstreamConfig {
-        presenceCallback = mock( PresenceEventListener.class );
+        presenceCallback = mock(PresenceEventListener.class);
         this.connectionMock = new ConnectionMock();
-        this.deepstreamRuntimeErrorHandler = mock( DeepstreamRuntimeErrorHandler.class );
+        this.deepstreamRuntimeErrorHandler = mock(DeepstreamRuntimeErrorHandler.class);
         this.deepstreamClientMock = new DeepstreamClientMock();
-        this.deepstreamClientMock.setRuntimeErrorHandler( this.deepstreamRuntimeErrorHandler );
-        this.deepstreamClientMock.setConnectionState( ConnectionState.OPEN );
+        this.deepstreamClientMock.setRuntimeErrorHandler(this.deepstreamRuntimeErrorHandler);
+        this.deepstreamClientMock.setConnectionState(ConnectionState.OPEN);
 
         Properties options = new Properties();
-        options.put( "subscriptionTimeout", "10" );
+        options.put("subscriptionTimeout", "10");
 
-        presenceHandler = new PresenceHandler( new DeepstreamConfig( options ), connectionMock, deepstreamClientMock );
+        presenceHandler = new PresenceHandler(new DeepstreamConfig(options), connectionMock, deepstreamClientMock);
     }
 
     @After
@@ -45,7 +41,7 @@ public class PresenceHandlerTest {
 
     @Test
     public void queriesForConnectedClientsAndReceiveEmptyArray() throws DeepstreamError {
-        Assert.assertNull( connectionMock.lastSentMessage );
+        Assert.assertNull(connectionMock.lastSentMessage);
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -54,7 +50,7 @@ public class PresenceHandlerTest {
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                presenceHandler.handle( new Message(
+                presenceHandler.handle(new Message(
                         "raw",
                         Topic.PRESENCE,
                         Actions.QUERY,
@@ -63,8 +59,8 @@ public class PresenceHandlerTest {
             }
         }).start();
         String[] clients = presenceHandler.getAll();
-        Assert.assertEquals( TestUtil.replaceSeperators("U|Q|Q+"), connectionMock.lastSentMessage );
-        Assert.assertArrayEquals( new String[] {}, clients );
+        Assert.assertEquals(TestUtil.replaceSeperators("U|Q|Q+"), connectionMock.lastSentMessage);
+        Assert.assertArrayEquals(new String[]{}, clients);
     }
 
     @Test
@@ -77,43 +73,43 @@ public class PresenceHandlerTest {
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                presenceHandler.handle( new Message(
+                presenceHandler.handle(new Message(
                         "raw",
                         Topic.PRESENCE,
                         Actions.QUERY,
-                        new String[]{ "Bart", "Homer" }
+                        new String[]{"Bart", "Homer"}
                 ));
             }
         }).start();
         String[] clients = presenceHandler.getAll();
-        Assert.assertEquals( TestUtil.replaceSeperators("U|Q|Q+"), connectionMock.lastSentMessage );
-        String[] expectedClients = new String[] { "Bart", "Homer" };
-        Assert.assertArrayEquals( expectedClients, clients );
+        Assert.assertEquals(TestUtil.replaceSeperators("U|Q|Q+"), connectionMock.lastSentMessage);
+        String[] expectedClients = new String[]{"Bart", "Homer"};
+        Assert.assertArrayEquals(expectedClients, clients);
     }
 
     @Test
     public void subscribesToLoginsAndIsAlertedWhenClientLogsIn() throws InterruptedException {
-        presenceHandler.subscribe( presenceCallback );
-        Assert.assertEquals( TestUtil.replaceSeperators("U|S|S+"), connectionMock.lastSentMessage );
-        presenceHandler.handle( new Message(
+        presenceHandler.subscribe(presenceCallback);
+        Assert.assertEquals(TestUtil.replaceSeperators("U|S|S+"), connectionMock.lastSentMessage);
+        presenceHandler.handle(new Message(
                 "raw",
                 Topic.PRESENCE,
                 Actions.PRESENCE_JOIN,
-                new String[] { "Homer" }
+                new String[]{"Homer"}
         ));
-        verify( presenceCallback, times(1) ).onClientLogin( "Homer" );
+        verify(presenceCallback, times(1)).onClientLogin("Homer");
     }
 
     @Test
     public void unsubscribesToLoginsAndIsNotAlertedWhenClientLogsIn() throws InterruptedException {
-        presenceHandler.unsubscribe( presenceCallback );
-        Assert.assertEquals( TestUtil.replaceSeperators("U|US|US+"), connectionMock.lastSentMessage );
-        presenceHandler.handle( new Message(
+        presenceHandler.unsubscribe(presenceCallback);
+        Assert.assertEquals(TestUtil.replaceSeperators("U|US|US+"), connectionMock.lastSentMessage);
+        presenceHandler.handle(new Message(
                 "raw",
                 Topic.PRESENCE,
                 Actions.PRESENCE_JOIN,
-                new String[] { "Homer" }
+                new String[]{"Homer"}
         ));
-        verify( presenceCallback, times(0) ).onClientLogin( "Homer" );
+        verify(presenceCallback, times(0)).onClientLogin("Homer");
     }
 }

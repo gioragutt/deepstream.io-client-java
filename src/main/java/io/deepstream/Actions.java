@@ -18,36 +18,36 @@ public enum Actions {
     /**
      * A heartbeat ping from server
      */
-    PING( "PI" ),
+    PING("PI"),
     /**
      * An heartbeat pong to server
      */
-    PONG( "PO" ),
+    PONG("PO"),
     /**
      * An acknowledgement from server
      */
-    ACK( "A" ),
+    ACK("A"),
     /**
      * A connection redirect to allow client to connect to other deepstream
      * for load balancing
      */
-    REDIRECT( "RED" ),
+    REDIRECT("RED"),
     /**
      * A connection challenge
      */
-    CHALLENGE( "CH" ),
+    CHALLENGE("CH"),
     /**
      * Connection challenge response
      */
-    CHALLENGE_RESPONSE( "CHR" ),
+    CHALLENGE_RESPONSE("CHR"),
     /**
      * A request or response containing record data for a snapshot or subscription
      */
-    READ( "R" ),
+    READ("R"),
     /**
      * A create to indicate record can be created if it doesn't exist
      */
-    CREATE( "C" ),
+    CREATE("C"),
     /**
      * A combination of both the create and read actions
      */
@@ -60,43 +60,43 @@ public enum Actions {
     /**
      * An update, meaning all data in record has been updated
      */
-    UPDATE( "U" ),
+    UPDATE("U"),
     /**
      * A path, meaning a specific part of data under a path has been
      * updated
      */
-    PATCH( "P" ),
+    PATCH("P"),
     /**
      * Delete a record / be informed a record has been deleted
      */
-    DELETE( "D" ),
+    DELETE("D"),
     /**
      * Used to subscribe to most things, including events, records
      * ( although records use CR ) and providing rpcs
      */
-    SUBSCRIBE( "S" ),
+    SUBSCRIBE("S"),
     /**
      * Used to unsubscribe to anything that was previously subscribed to
      */
-    UNSUBSCRIBE( "US" ),
+    UNSUBSCRIBE("US"),
     /**
      * Action to enquire if record actually exists on deepstream
      */
-    HAS( "H" ),
+    HAS("H"),
     /**
      * Ask for the current state of a record
      */
-    SNAPSHOT( "SN" ),
+    SNAPSHOT("SN"),
     /**
      * Used to inform the client listener that it has the opportunity to provide the data
      * for a event or record subscription
      */
-    SUBSCRIPTION_FOR_PATTERN_FOUND( "SP" ),
+    SUBSCRIPTION_FOR_PATTERN_FOUND("SP"),
     /**
      * Used to inform listener that it it is no longer required to provide the data for a
      * event or record subscription
      */
-    SUBSCRIPTION_FOR_PATTERN_REMOVED( "SR" ),
+    SUBSCRIPTION_FOR_PATTERN_REMOVED("SR"),
     /**
      * Used to indicate if a record has a provider currently providing it data
      */
@@ -105,12 +105,12 @@ public enum Actions {
      * Inform the server that it the client is willing to provide any subscription matching
      * a pattern
      */
-    LISTEN( "L" ),
+    LISTEN("L"),
     /**
      * Inform the server that it the client is no longer willing to provide any subscription
      * matching a pattern
      */
-    UNLISTEN( "UL" ),
+    UNLISTEN("UL"),
     /**
      * Inform the server the provider is willing to provide the subscription
      */
@@ -122,53 +122,53 @@ public enum Actions {
     /**
      * Inform the client a remote event has occured
      */
-    EVENT( "EVT" ),
+    EVENT("EVT"),
     /**
      * A request to the server, used for RPC, authentication and connection
      */
-    REQUEST( "REQ" ),
+    REQUEST("REQ"),
     /**
      * A response from the server for a request
      */
-    RESPONSE( "RES" ),
+    RESPONSE("RES"),
     /**
      * Used to reject RPC requests
      */
-    REJECTION( "REJ" ),
+    REJECTION("REJ"),
     /**
      * Called when a user logs in
      */
-    PRESENCE_JOIN( "PNJ" ),
+    PRESENCE_JOIN("PNJ"),
     /**
      * Called when a user logs out
      */
-    PRESENCE_LEAVE( "PNL" ),
+    PRESENCE_LEAVE("PNL"),
     /**
      * Used to query for clients
      */
-    QUERY( "Q" ),
+    QUERY("Q"),
     /**
      * Used when requiring write acknowledgements when setting records
      */
-    WRITE_ACKNOWLEDGEMENT( "WA" );
+    WRITE_ACKNOWLEDGEMENT("WA");
 
-    private static final Map<String,Actions> lookup  = new HashMap<String,Actions>();
+    private static final Map<String, Actions> lookup = new HashMap<String, Actions>();
 
     static {
-        for( Actions s : EnumSet.allOf( Actions.class ) )
-            lookup.put( s.toString(), s);
+        for (Actions s : EnumSet.allOf(Actions.class))
+            lookup.put(s.toString(), s);
     }
 
-    private String action;
+    private final String action;
 
     @ObjectiveCName("init:")
-    Actions( String action ) {
+    Actions(String action) {
         this.action = action;
     }
 
     @ObjectiveCName("getAction:")
-    static Actions getAction( String action ) {
-        return lookup.get( action );
+    static Actions getAction(String action) {
+        return lookup.get(action);
     }
 
     @Override

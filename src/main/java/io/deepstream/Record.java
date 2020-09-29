@@ -4,8 +4,8 @@ package io.deepstream;
 import com.google.gson.*;
 import com.google.j2objc.annotations.ObjectiveCName;
 
-import java.util.*;
 import java.util.List;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
@@ -35,23 +35,24 @@ public class Record {
     private volatile boolean isDestroyed;
     private boolean isDiscarded;
     private int version;
-    private AtomicInteger usages;
+    private final AtomicInteger usages;
     private RecordMergeStrategy mergeStrategy;
     private RecordRemoteUpdateHandler recordRemoteUpdateHandler;
     private JsonElement data;
     private boolean hasProvider;
-    private ReentrantLock readyLock;
+    private final ReentrantLock readyLock;
 
     /**
      * Constructor is not public since it is created via {@link RecordHandler#getRecord(String)}
-     * @param name The unique name of the record
-     * @param recordOptions A map of deepstreamConfig, e.g. { persist: true }
-     * @param connection The instance of the server connection
+     *
+     * @param name             The unique name of the record
+     * @param recordOptions    A map of deepstreamConfig, e.g. { persist: true }
+     * @param connection       The instance of the server connection
      * @param deepstreamConfig Deepstream deepstreamConfig
-     * @param client deepstream.io client
+     * @param client           deepstream.io client
      */
     @ObjectiveCName("init:recordOptions:connection:deepstreamConfig:client:")
-    Record (String name, Map recordOptions, IConnection connection, DeepstreamConfig deepstreamConfig, DeepstreamClientAbstract client) {
+    Record(String name, Map recordOptions, IConnection connection, DeepstreamConfig deepstreamConfig, DeepstreamClientAbstract client) {
         this.ackTimeoutRegistry = client.getAckTimeoutRegistry();
         this.name = name;
         this.deepstreamConfig = deepstreamConfig;
@@ -61,7 +62,7 @@ public class Record {
         this.client = client;
         this.gson = deepstreamConfig.getJsonParser();
         this.data = new JsonObject();
-        this.path = new UtilJSONPath( this.data );
+        this.path = new UtilJSONPath(this.data);
         this.subscribers = new UtilEmitter();
         this.isReady = false;
         this.isDestroyed = false;
@@ -69,7 +70,7 @@ public class Record {
         this.isDiscarded = false;
         this.readyLock = new ReentrantLock();
         this.mergeStrategy = this.deepstreamConfig.getRecordMergeStrategy() != null ?
-                RecordMergeStrategies.INSTANCE.getMergeStrategy(this.deepstreamConfig.getRecordMergeStrategy()) : null ;
+                RecordMergeStrategies.INSTANCE.getMergeStrategy(this.deepstreamConfig.getRecordMergeStrategy()) : null;
         this.recordEventsListeners = new ArrayList<RecordEventsListener>();
         this.onceRecordReadyListeners = new ArrayList<RecordReadyListener>();
         this.recordDestroyPendingListeners = new ArrayList<Record.RecordDestroyPendingListener>();
@@ -93,6 +94,7 @@ public class Record {
 
     /**
      * Return whether the record data has been loaded from the server
+     *
      * @return true if record has been loaded
      */
     public boolean isReady() {
@@ -101,6 +103,7 @@ public class Record {
 
     /**
      * Return whether the record has an active provider
+     *
      * @return true if record has been loaded
      */
     public boolean hasProvider() {
@@ -110,6 +113,7 @@ public class Record {
     /**
      * Return whether the record data has been destroyed. If true and you need to use the method create it again via
      * {@link RecordHandler#getRecord(String)}
+     *
      * @return true if record has been destroyed
      */
     public boolean isDestroyed() {
@@ -118,6 +122,7 @@ public class Record {
 
     /**
      * Return the record version. This is solely used within a {@link RecordMergeStrategy}.
+     *
      * @return -1 if not loaded, otherwise the local version number
      */
     @ObjectiveCName("version")
@@ -127,6 +132,7 @@ public class Record {
 
     /**
      * Return the record name
+     *
      * @return The record name
      */
     public String name() {
@@ -135,39 +141,43 @@ public class Record {
 
     /**
      * Adds a Listener that will notify you if a Discard, Delete or Error event occurs
+     *
      * @param recordEventsListener The listener to add
      * @return The record
      */
     @ObjectiveCName("addRecordEventsListener:")
     public Record addRecordEventsListener(RecordEventsListener recordEventsListener) {
-        this.recordEventsListeners.add( recordEventsListener );
+        this.recordEventsListeners.add(recordEventsListener);
         return this;
     }
 
     /**
      * Remove listener added via {@link io.deepstream.Record#addRecordEventsListener(RecordEventsListener)}
+     *
      * @param recordEventsListener The listener to remove
      * @return The record
      */
     @ObjectiveCName("removeRecordEventsListener:")
     public Record removeRecordEventsListener(RecordEventsListener recordEventsListener) {
-        this.recordEventsListeners.remove( recordEventsListener );
+        this.recordEventsListeners.remove(recordEventsListener);
         return this;
     }
 
     /**
      * Set a merge strategy that comes with deepstream. These are currently LOCAL_WINS and REMOTE_WINS
+     *
      * @param mergeStrategy The name of the built in merge strategy to use
      * @return The record
      */
     @ObjectiveCName("setMergeStrategy:")
     public Record setMergeStrategy(MergeStrategy mergeStrategy) {
-        this.mergeStrategy = RecordMergeStrategies.INSTANCE.getMergeStrategy( mergeStrategy );
+        this.mergeStrategy = RecordMergeStrategies.INSTANCE.getMergeStrategy(mergeStrategy);
         return this;
     }
 
     /**
      * Set a custom merge strategy for this record
+     *
      * @param mergeStrategy The custom merge strategy to use
      * @return The record
      */
@@ -185,8 +195,8 @@ public class Record {
      *
      * @return The object with the type passed in and containing the records data
      */
-    <T> T get( Class<T> type ) {
-        return deepCopy( this.data, type );
+    <T> T get(Class<T> type) {
+        return deepCopy(this.data, type);
     }
 
     /**
@@ -203,20 +213,19 @@ public class Record {
      * @return The record data as a JsonElement
      */
     @ObjectiveCName("get:")
-    public JsonElement get( String path ) {
-        return deepCopy( this.path.get( path ) );
+    public JsonElement get(String path) {
+        return deepCopy(this.path.get(path));
     }
 
     /**
      * Gets the entire record data and should always return a {@link JsonObject}, except when using
      * a {@link io.deepstream.List}, but then you should always be using it via {@link io.deepstream.List#getEntries()} ;)
      *
-     * @see Record#get(String)
-     *
      * @return The record data as a json element
+     * @see Record#get(String)
      */
     public JsonElement get() {
-        return deepCopy( this.data );
+        return deepCopy(this.data);
     }
 
     /**
@@ -226,10 +235,10 @@ public class Record {
      * such as {@link Map}. Since this is a root the object should also not be a primitive.
      *
      * @see Record#set(String, Object)
-     */ 
+     */
     @ObjectiveCName("set:")
-    public Record set( JsonElement value ) throws DeepstreamRecordDestroyedException {
-        return this.set( null, value, false );
+    public Record set(JsonElement value) throws DeepstreamRecordDestroyedException {
+        return this.set(null, value, false);
     }
 
     /**
@@ -241,14 +250,14 @@ public class Record {
      * If you path is not null, you can pass in primitives as long as the path
      * is not null, which is the equivalent of calling {@link Record#set(JsonElement)}.
      *
-     * @param path The path with the JsonElement at which to set the value
+     * @param path  The path with the JsonElement at which to set the value
      * @param value The value to set
      * @return The record
      * @throws DeepstreamRecordDestroyedException Thrown if the record has been destroyed and can't perform more actions
      */
     @ObjectiveCName("set:value:")
-    public Record set(String path, Object value ) throws DeepstreamRecordDestroyedException {
-        return this.set( path, value, false );
+    public Record set(String path, Object value) throws DeepstreamRecordDestroyedException {
+        return this.set(path, value, false);
     }
 
     /**
@@ -275,39 +284,37 @@ public class Record {
      * If your path is not null, you can pass in primitives, which is the
      * equivalent of calling {@link Record#set(String, Object)}.
      *
-     * @param path The path with the JsonElement at which to set the value
+     * @param path  The path with the JsonElement at which to set the value
      * @param value The value to set
      * @return The record
      * @throws DeepstreamRecordDestroyedException Thrown if the record has been destroyed and can't perform more actions
      */
     @ObjectiveCName("setWithAck:value:")
     public RecordSetResult setWithAck(String path, Object value) {
-        throwExceptionIfDestroyed( "set" );
+        throwExceptionIfDestroyed("set");
 
         JsonElement element;
-        if( value instanceof String ) {
+        if (value instanceof String) {
             element = new JsonPrimitive((String) value);
-        }
-        else if( value instanceof Number ) {
+        } else if (value instanceof Number) {
             element = new JsonPrimitive((Number) value);
-        }
-        else if( value instanceof Boolean ) {
+        } else if (value instanceof Boolean) {
             element = new JsonPrimitive((Boolean) value);
         } else {
-            element = gson.toJsonTree( value );
+            element = gson.toJsonTree(value);
         }
 
-        JsonElement object = this.path.get( path );
+        JsonElement object = this.path.get(path);
 
-        if( object != null && object.equals( value ) ) {
+        if (object != null && object.equals(value)) {
             return new RecordSetResult(null);
-        } else if( path == null && this.data.equals( value ) ) {
+        } else if (path == null && this.data.equals(value)) {
             return new RecordSetResult(null);
         }
 
         final RecordSetResult[] result = new RecordSetResult[1];
-        final Map<String,JsonElement> oldValues = beginChange();
-        this.path.set( path, element );
+        final Map<String, JsonElement> oldValues = beginChange();
+        this.path.set(path, element);
         this.data = this.path.getCoreElement();
 
         JsonObject config = new JsonObject();
@@ -315,10 +322,10 @@ public class Record {
         String newVersion = String.valueOf(this.version + 1);
 
         String[] data;
-        if( path == null ) {
-            data = new String[]{ this.name(), newVersion, element.toString(), config.toString() };
+        if (path == null) {
+            data = new String[]{this.name(), newVersion, element.toString(), config.toString()};
         } else {
-            data = new String[]{ this.name(), newVersion, path, MessageBuilder.typed(value), config.toString() };
+            data = new String[]{this.name(), newVersion, path, MessageBuilder.typed(value), config.toString()};
         }
 
         Actions action;
@@ -332,14 +339,14 @@ public class Record {
         this.recordSetNotifier.request(newVersion, action, data, new UtilSingleNotifier.UtilSingleNotifierCallback() {
             @Override
             public void onSingleNotifierError(String name, DeepstreamError error) {
-                result[0] = new RecordSetResult( error.getMessage() );
+                result[0] = new RecordSetResult(error.getMessage());
                 snapshotLatch.countDown();
             }
 
             @Override
             public void onSingleNotifierResponse(String name, Object data) {
                 completeChange(oldValues);
-                result[0] = new RecordSetResult( null );
+                result[0] = new RecordSetResult(null);
                 snapshotLatch.countDown();
             }
         });
@@ -353,34 +360,35 @@ public class Record {
 
     /**
      * Notifies the user whenever anything under the path provided has changed.
+     *
      * @see Record#subscribe(String, RecordPathChangedCallback, boolean)
      */
     @ObjectiveCName("subscribe:recordPathChangedCallback:")
-    public Record subscribe(String path, RecordPathChangedCallback recordPathChangedCallback ) throws DeepstreamRecordDestroyedException {
-        return subscribe( path, recordPathChangedCallback, false );
+    public Record subscribe(String path, RecordPathChangedCallback recordPathChangedCallback) throws DeepstreamRecordDestroyedException {
+        return subscribe(path, recordPathChangedCallback, false);
     }
 
     /**
      * Subscribe to record changes.<br/>
-     *
+     * <p>
      * If a path is provided, updates will be based on everything in or under it.<br/>
-     *
+     * <p>
      * If trigger now is true, the listener will be immediately fired with the current value.
      *
-     * @param path The path to listen to
+     * @param path                      The path to listen to
      * @param recordPathChangedCallback The listener to add
-     * @param triggerNow Whether to immediately trigger the listener with the current value
+     * @param triggerNow                Whether to immediately trigger the listener with the current value
      * @return The record
      * @throws DeepstreamRecordDestroyedException Thrown if the record has been destroyed and can't perform more actions
      */
     @ObjectiveCName("subscribe:recordPathChangedCallback:triggerNow:")
-    public Record subscribe( String path, RecordPathChangedCallback recordPathChangedCallback, boolean triggerNow ) throws DeepstreamRecordDestroyedException {
-        throwExceptionIfDestroyed( "subscribe" );
+    public Record subscribe(String path, RecordPathChangedCallback recordPathChangedCallback, boolean triggerNow) throws DeepstreamRecordDestroyedException {
+        throwExceptionIfDestroyed("subscribe");
 
-        this.subscribers.on( path, recordPathChangedCallback );
+        this.subscribers.on(path, recordPathChangedCallback);
 
-        if( triggerNow ) {
-            recordPathChangedCallback.onRecordPathChanged( this.name, path, this.get( path ) );
+        if (triggerNow) {
+            recordPathChangedCallback.onRecordPathChanged(this.name, path, this.get(path));
         }
 
         return this;
@@ -388,26 +396,28 @@ public class Record {
 
     /**
      * Notifies the user whenever anything inside the Record has changed.
+     *
      * @see Record#subscribe(RecordChangedCallback, boolean)
      */
     @ObjectiveCName("subscribe:")
-    public Record subscribe( RecordChangedCallback recordChangedCallback ) throws DeepstreamRecordDestroyedException {
-        return subscribe( recordChangedCallback, false );
+    public Record subscribe(RecordChangedCallback recordChangedCallback) throws DeepstreamRecordDestroyedException {
+        return subscribe(recordChangedCallback, false);
     }
 
     /**
-     *  Notifies the user whenever anything inside the Record has changed, and triggers the listener immediately.
-     *  @param recordChangedCallback The callback for whenever anything within the record changes
-     *  @param triggerNow Whether to call the callback immediately with the current value
+     * Notifies the user whenever anything inside the Record has changed, and triggers the listener immediately.
+     *
+     * @param recordChangedCallback The callback for whenever anything within the record changes
+     * @param triggerNow            Whether to call the callback immediately with the current value
      */
     @ObjectiveCName("subscribe:triggerNow:")
-    public Record subscribe( RecordChangedCallback recordChangedCallback, boolean triggerNow ) throws DeepstreamRecordDestroyedException {
-        throwExceptionIfDestroyed( "subscribe" );
+    public Record subscribe(RecordChangedCallback recordChangedCallback, boolean triggerNow) throws DeepstreamRecordDestroyedException {
+        throwExceptionIfDestroyed("subscribe");
 
-        this.subscribers.on( ALL_EVENT, recordChangedCallback );
+        this.subscribers.on(ALL_EVENT, recordChangedCallback);
 
-        if( triggerNow ) {
-            recordChangedCallback.onRecordChanged( this.name, this.get() );
+        if (triggerNow) {
+            recordChangedCallback.onRecordChanged(this.name, this.get());
         }
 
         return this;
@@ -417,38 +427,40 @@ public class Record {
      * Remove the listener added via {@link Record#subscribe(RecordChangedCallback, boolean)}
      *
      * @param recordChangedCallback The listener to remove
-     * @throws DeepstreamRecordDestroyedException Thrown if the record has been destroyed and can't perform more actions
      * @return The record
+     * @throws DeepstreamRecordDestroyedException Thrown if the record has been destroyed and can't perform more actions
      */
     @ObjectiveCName("unsubscribe:")
-    public Record unsubscribe( RecordChangedCallback recordChangedCallback ) throws DeepstreamRecordDestroyedException {
-        throwExceptionIfDestroyed( "unsubscribe" );
-        this.subscribers.off( ALL_EVENT, recordChangedCallback );
+    public Record unsubscribe(RecordChangedCallback recordChangedCallback) throws DeepstreamRecordDestroyedException {
+        throwExceptionIfDestroyed("unsubscribe");
+        this.subscribers.off(ALL_EVENT, recordChangedCallback);
         return this;
     }
 
     /**
-     * Remove the listener added via {@link Record#subscribe(String,RecordPathChangedCallback, boolean)}
-     * @param path The path to unsubscribe from
+     * Remove the listener added via {@link Record#subscribe(String, RecordPathChangedCallback, boolean)}
+     *
+     * @param path                      The path to unsubscribe from
      * @param recordPathChangedCallback The listener to remove
-     * @throws DeepstreamRecordDestroyedException Thrown if the record has been destroyed and can't perform more actions
      * @return The record
+     * @throws DeepstreamRecordDestroyedException Thrown if the record has been destroyed and can't perform more actions
      */
     @ObjectiveCName("unsubscribe:recordPathChangedCallback:")
-    public Record unsubscribe( String path, RecordPathChangedCallback recordPathChangedCallback ) throws DeepstreamRecordDestroyedException {
-        throwExceptionIfDestroyed( "unsubscribe" );
-        this.subscribers.off( path, recordPathChangedCallback );
+    public Record unsubscribe(String path, RecordPathChangedCallback recordPathChangedCallback) throws DeepstreamRecordDestroyedException {
+        throwExceptionIfDestroyed("unsubscribe");
+        this.subscribers.off(path, recordPathChangedCallback);
         return this;
     }
 
     /**
      * Discard the record. This should be called whenever you are done with the record retrieved by {@link RecordHandler#getRecord(String)}.
      * This does not guarantee that your subscriptions have been unsubscribed, so make sure to do that first!<br/>
-     *
+     * <p>
      * If all usages of the same record have been discarded, the record will no longer be updated from the server and
      * any further usages will require the record to be retrieved again via {@link RecordHandler#getRecord(String)}<br/>
-     *
+     * <p>
      * Once the record is successfully discard, you can be notified via {@link RecordEventsListener#onRecordDiscarded(String)}
+     *
      * @return The record
      * @throws DeepstreamRecordDestroyedException Thrown if the record has been destroyed and can't perform more actions
      */
@@ -460,7 +472,7 @@ public class Record {
         return this;
     }
 
-    void finishDiscard () {
+    void finishDiscard() {
         // This must be a synchronized block so that RecordHandler.getRecord will not continue until the
         // record has been removed from the cache in onDestroyPending.
         synchronized (this) {
@@ -469,7 +481,7 @@ public class Record {
             if (!isDiscarded) {
                 this.whenReady(new RecordReadyListener() {
                     @Override
-                    public void onRecordReady (String recordName, Record record) {
+                    public void onRecordReady(String recordName, Record record) {
                         ackTimeoutRegistry.add(Topic.RECORD, Actions.UNSUBSCRIBE, name, deepstreamConfig.getSubscriptionTimeout());
                         connection.send(MessageBuilder.getMsg(Topic.RECORD, Actions.UNSUBSCRIBE, name));
 
@@ -487,7 +499,7 @@ public class Record {
     /**
      * Delete the record. This is called when you want to remove the record entirely from deepstream, deleting it from storage
      * and cache and telling all other users that it has been deleted. This in turn will force all clients to discard the record.<br/>
-     *
+     * <p>
      * Once the record is successfully deleted, you can be notified via {@link RecordEventsListener#onRecordDeleted(String)} (String)}</br>
      *
      * @return The record
@@ -495,16 +507,16 @@ public class Record {
      */
     @ObjectiveCName("delete")
     public Record delete() throws DeepstreamRecordDestroyedException {
-        throwExceptionIfDestroyed( "delete" );
+        throwExceptionIfDestroyed("delete");
 
         this.whenReady(new RecordReadyListener() {
             @Override
             public void onRecordReady(String recordName, Record record) {
                 ackTimeoutRegistry.add(Topic.RECORD, Actions.DELETE, name, Event.DELETE_TIMEOUT, deepstreamConfig.getSubscriptionTimeout());
-                connection.send( MessageBuilder.getMsg( Topic.RECORD, Actions.DELETE, name ) );
+                connection.send(MessageBuilder.getMsg(Topic.RECORD, Actions.DELETE, name));
 
-                for(RecordDestroyPendingListener recordDestroyPendingHandler: recordDestroyPendingListeners) {
-                    recordDestroyPendingHandler.onDestroyPending( name );
+                for (RecordDestroyPendingListener recordDestroyPendingHandler : recordDestroyPendingListeners) {
+                    recordDestroyPendingHandler.onDestroyPending(name);
                 }
             }
         });
@@ -516,6 +528,7 @@ public class Record {
     /**
      * Add a recordReadyListener as a callback. This means it will be called once when the record is ready, either in sync
      * or async if the record is not already ready.
+     *
      * @param recordReadyListener The recordReadyListener that will be triggered only **once**
      * @return The record
      */
@@ -523,14 +536,13 @@ public class Record {
     Record whenReady(RecordReadyListener recordReadyListener) {
         readyLock.lock();
         try {
-            if( this.isReady ) {
+            if (this.isReady) {
                 readyLock.unlock();
-                recordReadyListener.onRecordReady( this.name, this );
+                recordReadyListener.onRecordReady(this.name, this);
             } else {
-                this.onceRecordReadyListeners.add( recordReadyListener );
+                this.onceRecordReadyListeners.add(recordReadyListener);
             }
-        }
-        finally {
+        } finally {
             if (readyLock.isHeldByCurrentThread()) {
                 readyLock.unlock();
             }
@@ -540,32 +552,33 @@ public class Record {
 
     /**
      * Invoked when a message is received from {@link RecordHandler#handle(Message)}
+     *
      * @param message The message received from the server
      */
     @ObjectiveCName("onMessage:")
     void onMessage(Message message) {
-        if( message.action == Actions.ACK ) {
-            processAckMessage( message );
+        if (message.action == Actions.ACK) {
+            processAckMessage(message);
         } else if (message.action == Actions.READ && this.version() == -1) {
-            onRead( message );
-        } else if( message.action == Actions.READ || message.action == Actions.UPDATE || message.action == Actions.PATCH ) {
+            onRead(message);
+        } else if (message.action == Actions.READ || message.action == Actions.UPDATE || message.action == Actions.PATCH) {
             applyUpdate(message);
-        } else if( message.action == Actions.WRITE_ACKNOWLEDGEMENT ) {
+        } else if (message.action == Actions.WRITE_ACKNOWLEDGEMENT) {
             handleWriteAcknowledgement(message);
         } else if (message.action == Actions.SUBSCRIPTION_HAS_PROVIDER) {
             updateHasProvider(message);
-        } else if( message.data[ 0 ].equals( Event.VERSION_EXISTS.toString() ) ) {
-            recoverRecord( Integer.parseInt( message.data[ 2 ] ), gson.fromJson( message.data[ 3 ], JsonElement.class ));
-        } else if( message.data[ 0 ].equals( Event.MESSAGE_DENIED.toString() ) ) {
-           clearTimeouts();
+        } else if (message.data[0].equals(Event.VERSION_EXISTS.toString())) {
+            recoverRecord(Integer.parseInt(message.data[2]), gson.fromJson(message.data[3], JsonElement.class));
+        } else if (message.data[0].equals(Event.MESSAGE_DENIED.toString())) {
+            clearTimeouts();
         }
     }
 
     private void handleWriteAcknowledgement(Message message) {
         String val = String.valueOf(message.data[1]);
-        Object versions = gson.fromJson( val, JsonArray.class );
-        Object error = MessageParser.convertTyped(message.data[ 2 ], this.client, gson);
-        if( error != null ) {
+        Object versions = gson.fromJson(val, JsonArray.class);
+        Object error = MessageParser.convertTyped(message.data[2], this.client, gson);
+        if (error != null) {
             this.recordSetNotifier.receive((JsonArray) versions, new DeepstreamError((String) error));
         } else {
             this.recordSetNotifier.receive((JsonArray) versions, null);
@@ -574,6 +587,7 @@ public class Record {
 
     /**
      * This gives us a handle to before and after a record is updated remotely. This is currently used by {@link io.deepstream.List}
+     *
      * @param recordRemoteUpdateHandler The listener to notify before and after an update is applied
      */
     @ObjectiveCName("setRecordRemoteUpdateHandler:")
@@ -598,52 +612,52 @@ public class Record {
 
         JsonElement data;
         boolean delete = false;
-        if( message.action == Actions.PATCH ) {
-            Object rawData = MessageParser.convertTyped( message.data[ 3 ], client, gson );
-            if( rawData == Types.UNDEFINED ) {
+        if (message.action == Actions.PATCH) {
+            Object rawData = MessageParser.convertTyped(message.data[3], client, gson);
+            if (rawData == Types.UNDEFINED) {
                 delete = true;
                 data = null;
             } else {
-                data = gson.toJsonTree( rawData );
+                data = gson.toJsonTree(rawData);
             }
         } else {
-            data = gson.fromJson( message.data[ 2 ], JsonElement.class );
+            data = gson.fromJson(message.data[2], JsonElement.class);
         }
 
         if (this.version != -1 && this.version + 1 != newVersion) {
-            if( message.action == Actions.PATCH ) {
+            if (message.action == Actions.PATCH) {
                 /*
                   Request a snapshot so that a merge can be done with the read reply which contains
                   the full state of the record
                  */
-                this.connection.send( MessageBuilder.getMsg( Topic.RECORD, Actions.SNAPSHOT, this.name ) );
+                this.connection.send(MessageBuilder.getMsg(Topic.RECORD, Actions.SNAPSHOT, this.name));
             } else {
                 recoverRecord(newVersion, data);
             }
             return;
         }
 
-        if( this.recordRemoteUpdateHandler != null ) {
+        if (this.recordRemoteUpdateHandler != null) {
             this.recordRemoteUpdateHandler.beforeRecordUpdate();
         }
 
         Map<String, JsonElement> oldValues = beginChange();
 
         this.version = newVersion;
-        if( Actions.PATCH == message.action ) {
-            if( delete ) {
-                path.delete( message.data[ 2 ] );
+        if (Actions.PATCH == message.action) {
+            if (delete) {
+                path.delete(message.data[2]);
             } else {
                 path.set(message.data[2], data);
             }
         } else {
             this.data = data;
-            this.path.setCoreElement( data );
+            this.path.setCoreElement(data);
         }
 
-        completeChange( oldValues );
+        completeChange(oldValues);
 
-        if( this.recordRemoteUpdateHandler != null ) {
+        if (this.recordRemoteUpdateHandler != null) {
             this.recordRemoteUpdateHandler.afterRecordUpdate();
         }
     }
@@ -652,17 +666,18 @@ public class Record {
      * Called when a merge conflict is detected by a VERSION_EXISTS error or if an update received
      * is directly after the clients. If no merge strategy is configure it will emit a VERSION_EXISTS
      * error and the record will remain in an inconsistent state.
+     *
      * @param remoteVersion The remote version number
-     * @param remoteData The remote object data
+     * @param remoteData    The remote object data
      */
     @ObjectiveCName("recoverRecord:remoteData:")
     private void recoverRecord(int remoteVersion, JsonElement remoteData) {
         try {
-            JsonElement mergedData = this.mergeStrategy.merge( this, remoteData, remoteVersion );
+            JsonElement mergedData = this.mergeStrategy.merge(this, remoteData, remoteVersion);
             this.version = remoteVersion;
-            this.set( null, mergedData, true );
-        } catch( RecordMergeStrategyException ex ) {
-            this.client.onError( Topic.RECORD, Event.VERSION_EXISTS, "Received update for " + remoteVersion + " but version is " + this.version );
+            this.set(null, mergedData, true);
+        } catch (RecordMergeStrategyException ex) {
+            this.client.onError(Topic.RECORD, Event.VERSION_EXISTS, "Received update for " + remoteVersion + " but version is " + this.version);
         }
     }
 
@@ -678,31 +693,32 @@ public class Record {
      * Remove response timeouts
      */
     private void clearTimeouts() {
-        this.ackTimeoutRegistry.clear( Topic.RECORD, Actions.SUBSCRIBE, this.name );
-        this.ackTimeoutRegistry.clear( Topic.RECORD, Actions.READ, this.name );
+        this.ackTimeoutRegistry.clear(Topic.RECORD, Actions.SUBSCRIBE, this.name);
+        this.ackTimeoutRegistry.clear(Topic.RECORD, Actions.READ, this.name);
     }
 
     /**
      * First of two steps that are called for incoming and outgoing updates.
      * Saves the current value of all paths the app is subscribed to.
+     *
      * @return The record
      */
-    private Map<String,JsonElement> beginChange() {
+    private Map<String, JsonElement> beginChange() {
         Set<String> paths = this.subscribers.getEvents();
 
-        if( paths.isEmpty() ) {
+        if (paths.isEmpty()) {
             return null;
         }
 
-        Map<String,JsonElement> oldValues = new HashMap<String,JsonElement>();
+        Map<String, JsonElement> oldValues = new HashMap<String, JsonElement>();
 
-        if( paths.contains( ALL_EVENT ) ) {
-            oldValues.put( ALL_EVENT, this.get() );
+        if (paths.contains(ALL_EVENT)) {
+            oldValues.put(ALL_EVENT, this.get());
         }
 
-        for( String path : paths ) {
-            if( !path.equals( ALL_EVENT ) ) {
-                oldValues.put( path, this.get( path ) );
+        for (String path : paths) {
+            if (!path.equals(ALL_EVENT)) {
+                oldValues.put(path, this.get(path));
             }
         }
 
@@ -717,31 +733,31 @@ public class Record {
      * @param oldValues The previous paths and values
      */
     // @ObjectiveCName("completeChange:")
-    private void completeChange(Map<String,JsonElement> oldValues) {
+    private void completeChange(Map<String, JsonElement> oldValues) {
         List<Object> listeners;
 
         JsonElement oldValue, newValue;
 
-        if( oldValues == null || oldValues.isEmpty() ) {
+        if (oldValues == null || oldValues.isEmpty()) {
             return;
         }
 
-        oldValue = oldValues.remove( ALL_EVENT );
-        if( oldValue != null && !oldValue.equals( this.data ) ) {
-            listeners = this.subscribers.listeners( ALL_EVENT );
-            for( Object listener : listeners ) {
-                ((RecordChangedCallback) listener).onRecordChanged( this.name, this.get() );
+        oldValue = oldValues.remove(ALL_EVENT);
+        if (oldValue != null && !oldValue.equals(this.data)) {
+            listeners = this.subscribers.listeners(ALL_EVENT);
+            for (Object listener : listeners) {
+                ((RecordChangedCallback) listener).onRecordChanged(this.name, this.get());
             }
         }
 
-        for( String key : oldValues.keySet() ) {
-            oldValue = oldValues.get( key );
-            newValue = this.get( key );
-            if( oldValue == null || !oldValue.equals( newValue ) ) {
-                listeners = this.subscribers.listeners( key );
-                for( Object listener : listeners ) {
-                    if( listener instanceof RecordPathChangedCallback ) {
-                        ((RecordPathChangedCallback) listener).onRecordPathChanged( this.name, key, newValue );
+        for (String key : oldValues.keySet()) {
+            oldValue = oldValues.get(key);
+            newValue = this.get(key);
+            if (oldValue == null || !oldValue.equals(newValue)) {
+                listeners = this.subscribers.listeners(key);
+                for (Object listener : listeners) {
+                    if (listener instanceof RecordPathChangedCallback) {
+                        ((RecordPathChangedCallback) listener).onRecordPathChanged(this.name, key, newValue);
                     }
                 }
             }
@@ -750,13 +766,14 @@ public class Record {
 
     /**
      * Throw an exception if the record has been destroyed
+     *
      * @param method The method to call
      * @throws DeepstreamRecordDestroyedException Thrown if the record has been destroyed and can't perform more actions
      */
     // @ObjectiveCName("throwExceptionIfDestroyed:")
     private void throwExceptionIfDestroyed(String method) throws DeepstreamRecordDestroyedException {
-        if( this.isDestroyed ) {
-            throw new DeepstreamRecordDestroyedException( method );
+        if (this.isDestroyed) {
+            throw new DeepstreamRecordDestroyedException(method);
         }
     }
 
@@ -765,18 +782,17 @@ public class Record {
      */
     @ObjectiveCName("processAckMessage:")
     private void processAckMessage(Message message) {
-        Actions action = Actions.getAction( message.data[ 0 ] );
-        this.ackTimeoutRegistry.clear( message );
+        Actions action = Actions.getAction(message.data[0]);
+        this.ackTimeoutRegistry.clear(message);
 
-        if( action.equals( Actions.DELETE ) ) {
-            for(RecordEventsListener recordEventsListener: this.recordEventsListeners) {
-                recordEventsListener.onRecordDeleted( this.name );
+        if (action.equals(Actions.DELETE)) {
+            for (RecordEventsListener recordEventsListener : this.recordEventsListeners) {
+                recordEventsListener.onRecordDeleted(this.name);
             }
             this.destroy();
-        }
-        else if( action.equals( Actions.UNSUBSCRIBE ) ) {
-            for(RecordEventsListener recordEventsListener: this.recordEventsListeners) {
-                recordEventsListener.onRecordDiscarded( this.name );
+        } else if (action.equals(Actions.UNSUBSCRIBE)) {
+            for (RecordEventsListener recordEventsListener : this.recordEventsListeners) {
+                recordEventsListener.onRecordDiscarded(this.name);
             }
             this.destroy();
         }
@@ -784,17 +800,18 @@ public class Record {
 
     /**
      * Callback for incoming read messages
+     *
      * @param message The read {@link Message}
      */
     @ObjectiveCName("onRead:")
-    private void onRead( Message message ) {
-        ackTimeoutRegistry.clear( message );
+    private void onRead(Message message) {
+        ackTimeoutRegistry.clear(message);
 
-        Map<String,JsonElement> oldValues = beginChange();
-        this.version = Integer.parseInt( message.data[ 1 ] );
+        Map<String, JsonElement> oldValues = beginChange();
+        this.version = Integer.parseInt(message.data[1]);
         this.data = MessageParser.readJsonStream(message.data[2], gson);
         this.path.setCoreElement(this.data);
-        completeChange( oldValues );
+        completeChange(oldValues);
         setReady();
     }
 
@@ -811,13 +828,12 @@ public class Record {
             // Capture the list inside the lock so we can execute the listeners outside the lock.
             listCopy = new ArrayList<RecordReadyListener>(this.onceRecordReadyListeners);
             this.onceRecordReadyListeners.clear();
-        }
-        finally {
+        } finally {
             readyLock.unlock();
         }
 
-        for(RecordReadyListener recordReadyListener: listCopy) {
-            recordReadyListener.onRecordReady( this.name, this );
+        for (RecordReadyListener recordReadyListener : listCopy) {
+            recordReadyListener.onRecordReady(this.name, this);
         }
     }
 
@@ -826,32 +842,32 @@ public class Record {
      * creation or after a lost connection has been re-established
      */
     private void sendRead() {
-        if( this.client.getConnectionState() == ConnectionState.OPEN ) {
-            this.connection.send( MessageBuilder.getMsg( Topic.RECORD, Actions.CREATEORREAD, this.name ) );
+        if (this.client.getConnectionState() == ConnectionState.OPEN) {
+            this.connection.send(MessageBuilder.getMsg(Topic.RECORD, Actions.CREATEORREAD, this.name));
         }
     }
 
     /**
      * Send the update to the server, either as an update or patch
-     * @param key The key to update if a patch
+     *
+     * @param key   The key to update if a patch
      * @param value The value to update the record with
      */
     @ObjectiveCName("sendUpdate:value:")
-    private void sendUpdate( String key, Object value ) {
+    private void sendUpdate(String key, Object value) {
         this.version++;
-        if( key == null || key.equals("") ) {
-            this.connection.sendMsg( Topic.RECORD, Actions.UPDATE, new String[] {
+        if (key == null || key.equals("")) {
+            this.connection.sendMsg(Topic.RECORD, Actions.UPDATE, new String[]{
                     this.name,
-                    String.valueOf( this.version ),
-                    gson.toJson( value )
+                    String.valueOf(this.version),
+                    gson.toJson(value)
             });
-        }
-        else {
-            this.connection.sendMsg( Topic.RECORD, Actions.PATCH, new String[] {
+        } else {
+            this.connection.sendMsg(Topic.RECORD, Actions.PATCH, new String[]{
                     this.name,
-                    String.valueOf( this.version ),
+                    String.valueOf(this.version),
                     key,
-                    MessageBuilder.typed( value )
+                    MessageBuilder.typed(value)
             });
         }
     }
@@ -893,37 +909,35 @@ public class Record {
      * but the version number isn't.
      */
     @ObjectiveCName("set:value:force:")
-    private Record set(String path, Object value, boolean force ) throws DeepstreamRecordDestroyedException {
-        throwExceptionIfDestroyed( "set" );
+    private Record set(String path, Object value, boolean force) throws DeepstreamRecordDestroyedException {
+        throwExceptionIfDestroyed("set");
 
         JsonElement element;
-        if( value instanceof String ) {
+        if (value instanceof String) {
             element = new JsonPrimitive((String) value);
-        }
-        else if( value instanceof Number ) {
+        } else if (value instanceof Number) {
             element = new JsonPrimitive((Number) value);
-        }
-        else if( value instanceof Boolean ) {
+        } else if (value instanceof Boolean) {
             element = new JsonPrimitive((Boolean) value);
         } else {
-            element = gson.toJsonTree( value );
+            element = gson.toJsonTree(value);
         }
 
-        JsonElement object = this.path.get( path );
+        JsonElement object = this.path.get(path);
 
-        if( !force ) {
-            if( object != null && object.equals( value ) ) {
+        if (!force) {
+            if (object != null && object.equals(value)) {
                 return this;
-            } else if( path == null && this.data.equals( value ) ) {
+            } else if (path == null && this.data.equals(value)) {
                 return this;
             }
         }
 
-        Map<String,JsonElement> oldValues = beginChange();
-        this.path.set( path, element );
+        Map<String, JsonElement> oldValues = beginChange();
+        this.path.set(path, element);
         this.data = this.path.getCoreElement();
-        sendUpdate( path, value );
-        completeChange( oldValues );
+        sendUpdate(path, value);
+        completeChange(oldValues);
 
         return this;
     }
@@ -933,7 +947,7 @@ public class Record {
      */
     @ObjectiveCName("addRecordDestroyPendingListener:")
     void addRecordDestroyPendingListener(RecordDestroyPendingListener recordDestroyPendingListener) {
-        this.recordDestroyPendingListeners.add( recordDestroyPendingListener );
+        this.recordDestroyPendingListeners.add(recordDestroyPendingListener);
     }
 
     int getAndIncrementUsage() {
@@ -947,6 +961,7 @@ public class Record {
          */
         @ObjectiveCName("beforeRecordUpdate")
         void beforeRecordUpdate();
+
         /**
          * Called after a remote update is applied to the current data
          */
@@ -959,6 +974,7 @@ public class Record {
         /**
          * Called whenever the client is about to send the server a {@link Record#discard()} or {@link Record#delete()} event.<br/>
          * This should not be required to be implemented
+         *
          * @param recordName The name of the record being destroyed
          */
         @ObjectiveCName("onDestroyPending:")

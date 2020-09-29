@@ -17,7 +17,7 @@ public interface ListenListener {
      * @return true if the server responds is willing to accept the request, false to reject
      */
     @ObjectiveCName("onSubscriptionForPatternAdded:")
-    boolean onSubscriptionForPatternAdded( String subscription );
+    boolean onSubscriptionForPatternAdded(String subscription);
 
     /**
      * If a provider has accepted a request, they will then be notified when the subscription is no longer needed
@@ -26,5 +26,5 @@ public interface ListenListener {
      * @param subscription The name of the subscription to stop providing
      */
     @ObjectiveCName("onSubscriptionForPatternRemoved:")
-    void onSubscriptionForPatternRemoved( String subscription );
+    void onSubscriptionForPatternRemoved(String subscription);
 }

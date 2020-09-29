@@ -8,9 +8,10 @@ import com.google.j2objc.annotations.ObjectiveCName;
 public interface AnonymousRecordNameChangedListener {
     /**
      * Notified whenever the anonymous record changes
-     * @param recordName The new recordName
+     *
+     * @param recordName      The new recordName
      * @param anonymousRecord The anonymousRecord which name changed
      */
     @ObjectiveCName("recordNameChanged:anonymousRecord:")
-    void recordNameChanged(String recordName, AnonymousRecord anonymousRecord );
+    void recordNameChanged(String recordName, AnonymousRecord anonymousRecord);
 }

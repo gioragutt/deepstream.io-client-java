@@ -8,6 +8,7 @@ import com.google.j2objc.annotations.ObjectiveCName;
 interface Endpoint {
     /**
      * Message to send to the deepstream server
+     *
      * @param message The message to send (TOPIC|ACTION|ARRAY+)
      */
     @ObjectiveCName("send:")

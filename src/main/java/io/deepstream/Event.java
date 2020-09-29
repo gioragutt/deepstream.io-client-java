@@ -91,10 +91,10 @@ public enum Event {
     MULTIPLE_SUBSCRIPTIONS;
 
     @ObjectiveCName("getEvent:")
-    static Event getEvent(String event ) {
+    static Event getEvent(String event) {
 
-        for( Event s : EnumSet.allOf( Event.class ) ) {
-            if( s.name().equals( event ) ) {
+        for (Event s : EnumSet.allOf(Event.class)) {
+            if (s.name().equals(event)) {
                 return s;
             }
         }

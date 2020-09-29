@@ -14,24 +14,24 @@ public enum Topic {
     /**
      * Connection topic, related to the first exchanges with server to validate connection
      */
-    CONNECTION( "C" ),
+    CONNECTION("C"),
     /**
      * Auth topic, related to the second exchange with server to authenticate
      * connection
      */
-    AUTH( "A" ),
+    AUTH("A"),
     /**
      * All generic errors arrive on this topic
      */
-    ERROR( "X" ),
+    ERROR("X"),
     /**
      * Event data is routed through this topic
      */
-    EVENT( "E" ),
+    EVENT("E"),
     /**
      * Record data is routed through this topic
      */
-    RECORD( "R" ),
+    RECORD("R"),
     /**
      * RPC data is routed through this topic
      */
@@ -39,25 +39,25 @@ public enum Topic {
     /**
      * Presence data is routed through this topic
      */
-    PRESENCE( "U" );
+    PRESENCE("U");
 
-    private static final Map<String,Topic> lookup  = new HashMap<String,Topic>();
+    private static final Map<String, Topic> lookup = new HashMap<String, Topic>();
 
     static {
-        for( Topic s : EnumSet.allOf( Topic.class ) )
-            lookup.put( s.toString(), s);
+        for (Topic s : EnumSet.allOf(Topic.class))
+            lookup.put(s.toString(), s);
     }
 
-    private String topic;
+    private final String topic;
 
     @ObjectiveCName("init:")
-    Topic( String topic ) {
+    Topic(String topic) {
         this.topic = topic;
     }
 
     @ObjectiveCName("getTopic:")
-    static Topic getTopic( String topic ) {
-        return lookup.get( topic );
+    static Topic getTopic(String topic) {
+        return lookup.get(topic);
     }
 
     @Override
