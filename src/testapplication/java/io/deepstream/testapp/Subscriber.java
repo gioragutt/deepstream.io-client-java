@@ -2,20 +2,22 @@ package io.deepstream.testapp;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import io.deepstream.*;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class Subscriber {
-    public static void main(String[] args) throws InvalidDeepstreamConfig {
+    public static void main(String[] args) {
         new SubscriberApplication();
     }
 
     static class SubscriberApplication {
-
-        SubscriberApplication() throws InvalidDeepstreamConfig {
+        SubscriberApplication() {
             try {
                 Map config = new HashMap<String, Object>();
                 config.put(ConfigOptions.SUBSCRIPTION_TIMEOUT.toString(), 500);
@@ -104,7 +106,7 @@ public class Subscriber {
         }
 
         private void subscribeList(final DeepstreamClient client) {
-            List list = client.record.getList("list/a");
+            io.deepstream.List list = client.record.getList("list/a");
             list.subscribe(new ListChangedListener() {
                 @Override
                 public void onListChanged(String listName, String[] entries) {

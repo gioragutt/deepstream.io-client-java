@@ -2,6 +2,7 @@ package io.deepstream.testapp;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import io.deepstream.*;
 
 import java.util.Date;
 import java.util.concurrent.*;
