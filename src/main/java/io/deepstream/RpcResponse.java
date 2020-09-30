@@ -12,8 +12,8 @@ public class RpcResponse {
     private final String name;
     private final String correlationId;
 
-    private boolean isAcknowledged;
-    private boolean isComplete;
+    private boolean isAcknowledged = false;
+    private boolean isComplete = false;
 
     /**
      * This object provides a number of methods that allow a rpc provider
@@ -28,9 +28,7 @@ public class RpcResponse {
         this.connection = connection;
         this.name = name;
         this.correlationId = correlationId;
-        this.isAcknowledged = false;
-        this.isComplete = false;
-        this.ack();
+        ack();
     }
 
     /**
@@ -39,10 +37,13 @@ public class RpcResponse {
      * explicitly sets autoAck to false
      */
     public void ack() {
-        if (!this.isAcknowledged) {
-            this.connection.sendMsg(Topic.RPC, Actions.ACK, new String[]{Actions.REQUEST.toString(), this.name, this.correlationId});
-            this.isAcknowledged = true;
+        if (isAcknowledged) {
+            return;
         }
+
+        String[] payload = {Actions.REQUEST.toString(), name, correlationId};
+        connection.sendMsg(Topic.RPC, Actions.ACK, payload);
+        isAcknowledged = true;
     }
 
     /**
@@ -53,9 +54,9 @@ public class RpcResponse {
      * providers left
      */
     public void reject() {
-        this.isComplete = true;
-        this.isAcknowledged = true;
-        this.connection.sendMsg(Topic.RPC, Actions.REJECTION, new String[]{this.name, this.correlationId});
+        isComplete = true;
+        isAcknowledged = true;
+        connection.sendMsg(Topic.RPC, Actions.REJECTION, new String[]{name, correlationId});
     }
 
     /**
@@ -70,26 +71,27 @@ public class RpcResponse {
      */
     @ObjectiveCName("send:")
     public void send(Object data) {
-        if (this.isComplete) {
-            throw new DeepstreamException("Rpc " + this.name + " already completed");
+        if (isComplete) {
+            throw new DeepstreamException(String.format("Rpc %s already completed", name));
         }
+
         String typedData = MessageBuilder.typed(data);
-        this.connection.sendMsg(Topic.RPC, Actions.RESPONSE, new String[]{
-                this.name, this.correlationId, typedData
-        });
-        this.isComplete = true;
+        String[] payload = {name, correlationId, typedData};
+        connection.sendMsg(Topic.RPC, Actions.RESPONSE, payload);
+        isComplete = true;
     }
 
     /**
-     * Notifies the server that an error has occured while trying to process the request.
+     * Notifies the server that an error has occurred while trying to process the request.
      * This will complete the rpc.
      *
-     * @param errorMsg the message used to describe the error that occured
+     * @param errorMsg the message used to describe the error that occurred
      */
     @ObjectiveCName("error:")
     public void error(String errorMsg) {
-        this.isComplete = true;
-        this.isAcknowledged = true;
-        this.connection.sendMsg(Topic.RPC, Actions.ERROR, new String[]{errorMsg, this.name, this.correlationId});
+        isComplete = true;
+        isAcknowledged = true;
+        String[] payload = {errorMsg, name, correlationId};
+        connection.sendMsg(Topic.RPC, Actions.ERROR, payload);
     }
 }

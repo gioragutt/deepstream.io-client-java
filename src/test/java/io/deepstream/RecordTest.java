@@ -16,8 +16,8 @@ import java.util.concurrent.TimeUnit;
 import static org.mockito.Mockito.*;
 
 public class RecordTest {
-    DeepstreamClientMock deepstreamClientMock;
-    ConnectionMock connectionMock;
+    MockDeepstreamClient deepstreamClientMock;
+    MockConnection mockConnection;
     RecordHandler recordHandler;
     DeepstreamRuntimeErrorHandler errorCallbackMock;
     Record record;
@@ -28,9 +28,9 @@ public class RecordTest {
     @Before
     public void setUp() throws InvalidDeepstreamConfig, InterruptedException {
 
-        this.connectionMock = new ConnectionMock();
+        this.mockConnection = new MockConnection();
         this.errorCallbackMock = mock(DeepstreamRuntimeErrorHandler.class);
-        this.deepstreamClientMock = new DeepstreamClientMock();
+        this.deepstreamClientMock = new MockDeepstreamClient();
         this.deepstreamClientMock.setRuntimeErrorHandler(errorCallbackMock);
         this.deepstreamClientMock.setConnectionState(ConnectionState.OPEN);
 
@@ -41,14 +41,14 @@ public class RecordTest {
         options.put("recordReadTimeout", "200");
         config = new DeepstreamConfig(options);
 
-        recordHandler = new RecordHandler(config, connectionMock, deepstreamClientMock);
+        recordHandler = new RecordHandler(config, mockConnection, deepstreamClientMock);
         recordEventsListener = mock(RecordEventsListener.class);
         recordReadyListener = mock(Record.RecordReadyListener.class);
 
         Thread b = new Thread(new Runnable() {
             @Override
             public void run() {
-                record = new Record("recordA", new HashMap(), connectionMock, config, deepstreamClientMock);
+                record = new Record("recordA", new HashMap(), mockConnection, config, deepstreamClientMock);
                 record.addRecordEventsListener(recordEventsListener);
                 record.start();
             }
@@ -81,7 +81,7 @@ public class RecordTest {
             handleService.submit(new Runnable() {
                 @Override
                 public void run() {
-                    recordHandler.handle(MessageParser.parseMessage(TestUtil.replaceSeperators("R|R|foo|1|{\"bar\":\"baz\"}"), deepstreamClientMock));
+                    recordHandler.handle(MessageParser.parseMessage(TestUtil.formatMessage("R|R|foo|1|{\"bar\":\"baz\"}"), deepstreamClientMock));
                 }
             });
         }
@@ -103,14 +103,14 @@ public class RecordTest {
 
     @Test
     public void recordSendsAckAndRead() {
-        record.onMessage(MessageParser.parseMessage(TestUtil.replaceSeperators("R|A|S|recordA"), deepstreamClientMock));
-        record.onMessage(MessageParser.parseMessage(TestUtil.replaceSeperators("R|R|recordA|0|{ \"name\": \"sam\" }"), deepstreamClientMock));
+        record.onMessage(MessageParser.parseMessage(TestUtil.formatMessage("R|A|S|recordA"), deepstreamClientMock));
+        record.onMessage(MessageParser.parseMessage(TestUtil.formatMessage("R|R|recordA|0|{ \"name\": \"sam\" }"), deepstreamClientMock));
     }
 
     @Test
     public void recordHasSendCreateReadMessage() {
         recordSendsAckAndRead();
-        Assert.assertEquals(connectionMock.lastSentMessage, TestUtil.replaceSeperators("R|CR|recordA+"));
+        Assert.assertEquals(mockConnection.lastSentMessage, TestUtil.formatMessage("R|CR|recordA+"));
     }
 
     @Test
@@ -142,7 +142,7 @@ public class RecordTest {
         recordSendsAckAndRead();
         record.discard();
 
-        Assert.assertEquals(connectionMock.lastSentMessage, TestUtil.replaceSeperators("R|US|recordA+"));
+        Assert.assertEquals(mockConnection.lastSentMessage, TestUtil.formatMessage("R|US|recordA+"));
         Assert.assertTrue(record.isDestroyed());
         Assert.assertFalse(record.isReady());
     }
@@ -151,7 +151,7 @@ public class RecordTest {
     public void emitsDiscardEventOnDiscardAck() throws DeepstreamRecordDestroyedException {
         recordSendsAckAndRead();
 
-        record.onMessage(MessageParser.parseMessage(TestUtil.replaceSeperators("R|A|US|recordA"), deepstreamClientMock));
+        record.onMessage(MessageParser.parseMessage(TestUtil.formatMessage("R|A|US|recordA"), deepstreamClientMock));
 
         Assert.assertFalse(record.isReady());
         Assert.assertTrue(record.isDestroyed());
@@ -165,7 +165,7 @@ public class RecordTest {
 
         record.delete();
 
-        Assert.assertEquals(connectionMock.lastSentMessage, TestUtil.replaceSeperators("R|D|recordA+"));
+        Assert.assertEquals(mockConnection.lastSentMessage, TestUtil.formatMessage("R|D|recordA+"));
         Assert.assertTrue(record.isReady());
         Assert.assertFalse(record.isDestroyed());
     }
@@ -173,7 +173,7 @@ public class RecordTest {
     @Test
     public void emitsDeleteEventOnDeleteAck() throws DeepstreamRecordDestroyedException {
         recordDeletesCorrectly();
-        record.onMessage(MessageParser.parseMessage(TestUtil.replaceSeperators("R|A|D|recordA"), deepstreamClientMock));
+        record.onMessage(MessageParser.parseMessage(TestUtil.formatMessage("R|A|D|recordA"), deepstreamClientMock));
 
         Assert.assertFalse(record.isReady());
         Assert.assertTrue(record.isDestroyed());
@@ -183,16 +183,16 @@ public class RecordTest {
 
     @Test
     public void unsolicitatedDeleteAckMessages() throws DeepstreamRecordDestroyedException {
-        record.onMessage(MessageParser.parseMessage(TestUtil.replaceSeperators("R|A|D|recordA"), deepstreamClientMock));
-        verify(errorCallbackMock, times(1)).onException(Topic.RECORD, Event.UNSOLICITED_MESSAGE, TestUtil.replaceSeperators("R|A|D|recordA"));
+        record.onMessage(MessageParser.parseMessage(TestUtil.formatMessage("R|A|D|recordA"), deepstreamClientMock));
+        verify(errorCallbackMock, times(1)).onException(Topic.RECORD, Event.UNSOLICITED_MESSAGE, TestUtil.formatMessage("R|A|D|recordA"));
     }
 
     @Test
     public void unsolicitatedDiscardAckMessages() throws DeepstreamRecordDestroyedException {
         recordSendsAckAndRead();
 
-        record.onMessage(MessageParser.parseMessage(TestUtil.replaceSeperators("R|A|US|recordA"), deepstreamClientMock));
-        verify(errorCallbackMock, times(1)).onException(Topic.RECORD, Event.UNSOLICITED_MESSAGE, TestUtil.replaceSeperators("R|A|US|recordA"));
+        record.onMessage(MessageParser.parseMessage(TestUtil.formatMessage("R|A|US|recordA"), deepstreamClientMock));
+        verify(errorCallbackMock, times(1)).onException(Topic.RECORD, Event.UNSOLICITED_MESSAGE, TestUtil.formatMessage("R|A|US|recordA"));
     }
 
     @Test
@@ -205,7 +205,7 @@ public class RecordTest {
     public void readTimeout() throws DeepstreamRecordDestroyedException, InterruptedException {
         try {
             Thread.sleep(200);
-            record.onMessage(MessageParser.parseMessage(TestUtil.replaceSeperators("R|A|S|recordA"), deepstreamClientMock));
+            record.onMessage(MessageParser.parseMessage(TestUtil.formatMessage("R|A|S|recordA"), deepstreamClientMock));
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

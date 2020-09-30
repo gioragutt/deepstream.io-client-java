@@ -1,38 +1,27 @@
 package io.deepstream;
 
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-import java.net.URISyntaxException;
-
 import static org.mockito.Mockito.*;
 
 @RunWith(JUnit4.class)
-public class UtilResubscriptionTest {
+public class ResubscribeNotifierTest {
 
-    DeepstreamClientMock deepstreamClientMock;
-    UtilResubscribeNotifier.UtilResubscribeListener resubscribeCallbackMock;
-    UtilResubscribeNotifier resubscribeNotifier;
-    DeepstreamRuntimeErrorHandler errorCallbackMock;
+    private final MockDeepstreamClient deepstreamClientMock =
+            TestUtil.createMockDeepstreamClient();
 
-    @Before
-    public void setUp() throws URISyntaxException {
-        this.resubscribeCallbackMock = mock(UtilResubscribeNotifier.UtilResubscribeListener.class);
+    private final ResubscribeNotifier.ResubscribeListener resubscribeCallbackMock =
+            mock(ResubscribeNotifier.ResubscribeListener.class);
 
-        this.errorCallbackMock = mock(DeepstreamRuntimeErrorHandler.class);
-        this.deepstreamClientMock = new DeepstreamClientMock();
-        this.deepstreamClientMock.setRuntimeErrorHandler(this.errorCallbackMock);
-        this.deepstreamClientMock.setConnectionState(ConnectionState.OPEN);
-
-        this.resubscribeNotifier = new UtilResubscribeNotifier(this.deepstreamClientMock, this.resubscribeCallbackMock);
-    }
+    private final ResubscribeNotifier resubscribeNotifier =
+            new ResubscribeNotifier(deepstreamClientMock, resubscribeCallbackMock);
 
     @After
     public void tearDown() {
-
+        resubscribeNotifier.destroy();
     }
 
     @Test

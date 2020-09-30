@@ -3,8 +3,9 @@ package io.deepstream;
 import com.google.j2objc.annotations.ObjectiveCName;
 
 import java.util.EnumSet;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Actions provide the intent of a message sent. A user of this sdk will only need to access these
@@ -152,12 +153,7 @@ public enum Actions {
      */
     WRITE_ACKNOWLEDGEMENT("WA");
 
-    private static final Map<String, Actions> lookup = new HashMap<String, Actions>();
-
-    static {
-        for (Actions s : EnumSet.allOf(Actions.class))
-            lookup.put(s.toString(), s);
-    }
+    private static final Map<String, Actions> LOOKUP = Utils.createEnumLookup(Actions.class);
 
     private final String action;
 
@@ -168,11 +164,11 @@ public enum Actions {
 
     @ObjectiveCName("getAction:")
     static Actions getAction(String action) {
-        return lookup.get(action);
+        return LOOKUP.get(action);
     }
 
     @Override
     public String toString() {
-        return this.action;
+        return action;
     }
 }

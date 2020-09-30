@@ -3,15 +3,15 @@ package io.deepstream;
 import com.google.gson.JsonElement;
 import com.google.j2objc.annotations.ObjectiveCName;
 
-abstract class DeepstreamClientAbstract {
-    private UtilAckTimeoutRegistry utilAckTimeoutRegistry;
+abstract class AbstractDeepstreamClient {
+    private final AckTimeoutRegistry ackTimeoutRegistry = new AckTimeoutRegistry(this);
     private DeepstreamRuntimeErrorHandler deepstreamRuntimeErrorHandler;
 
     @ObjectiveCName("addConnectionChangeListener:")
-    abstract DeepstreamClientAbstract addConnectionChangeListener(ConnectionStateListener connectionStateListener);
+    abstract AbstractDeepstreamClient addConnectionChangeListener(ConnectionStateListener connectionStateListener);
 
     @ObjectiveCName("removeConnectionChangeListener:")
-    abstract DeepstreamClientAbstract removeConnectionChangeListener(ConnectionStateListener connectionStateListener);
+    abstract AbstractDeepstreamClient removeConnectionChangeListener(ConnectionStateListener connectionStateListener);
 
     abstract ConnectionState getConnectionState();
 
@@ -20,15 +20,12 @@ abstract class DeepstreamClientAbstract {
     @ObjectiveCName("login:")
     abstract LoginResult login(JsonElement data);
 
-    abstract DeepstreamClientAbstract close();
+    abstract AbstractDeepstreamClient close();
 
     abstract String getUid();
 
-    UtilAckTimeoutRegistry getAckTimeoutRegistry() {
-        if (utilAckTimeoutRegistry == null) {
-            utilAckTimeoutRegistry = new UtilAckTimeoutRegistry(this);
-        }
-        return utilAckTimeoutRegistry;
+    AckTimeoutRegistry getAckTimeoutRegistry() {
+        return ackTimeoutRegistry;
     }
 
     /**

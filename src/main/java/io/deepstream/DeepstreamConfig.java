@@ -14,7 +14,7 @@ class DeepstreamConfig {
         properties = new Properties();
     }
 
-    DeepstreamConfig(Map map) throws InvalidDeepstreamConfig {
+    DeepstreamConfig(Map<?, ?> map) throws InvalidDeepstreamConfig {
         this.properties = new Properties();
         properties.putAll(map);
         this.validateProperties();

@@ -7,23 +7,20 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.net.URISyntaxException;
-
 public class JSONPathTest {
 
     private Gson gson = new Gson();
 
-    private UtilJSONPath jsonPath;
-    private UtilJSONPath jsonPath2;
-    private UtilJSONPath jsonPath3;
+    private JsonPath jsonPath;
+    private JsonPath jsonPath2;
+    private JsonPath jsonPath3;
 
     private JsonObject coreElement;
-    private JsonObject coreElement2;
     private JsonObject newTixTextObj;
     private JsonArray jsonArrayOfArrayObj;
 
     @Before
-    public void setUp() throws URISyntaxException {
+    public void setUp() {
 
         JsonArray pastAddresses = new JsonArray();
 
@@ -47,13 +44,13 @@ public class JSONPathTest {
         coreElement.add("address", currentAddress);
         coreElement.add("pastAddresses", pastAddresses);
 
-        jsonPath = new UtilJSONPath(coreElement);
+        jsonPath = new JsonPath(coreElement);
 
 
         // for new tests on numeric obj member names
         newTixTextObj = new JsonObject();
         newTixTextObj.addProperty("00000001", "tttttttt-1");
-        jsonPath2 = new UtilJSONPath(new JsonObject());
+        jsonPath2 = new JsonPath(new JsonObject());
 
         // for new tests on array of arrays
         jsonArrayOfArrayObj = new JsonArray();
@@ -62,7 +59,7 @@ public class JSONPathTest {
         innerArray.add("VALUE");
         jsonArrayOfArrayObj.add(JsonNull.INSTANCE);
         jsonArrayOfArrayObj.add(innerArray);
-        jsonPath3 = new UtilJSONPath(new JsonObject());
+        jsonPath3 = new JsonPath(new JsonObject());
 
     }
 
@@ -360,7 +357,7 @@ public class JSONPathTest {
 
     @Test
     public void overridesSimpleObjects() {
-        UtilJSONPath jsonPath = new UtilJSONPath(new JsonObject());
+        JsonPath jsonPath = new JsonPath(new JsonObject());
         String actual;
 
         jsonPath.set("favourites.mars", new JsonPrimitive("BEST"));
@@ -409,7 +406,7 @@ public class JSONPathTest {
         alex.add("friends", friends);
         root.add("alex", alex);
 
-        UtilJSONPath jsonPath = new UtilJSONPath(root);
+        JsonPath jsonPath = new JsonPath(root);
         String actual;
 
         // override primitive in array to object
@@ -469,7 +466,7 @@ public class JSONPathTest {
         alex.add("friends", friends);
         root.add("alex", alex);
 
-        UtilJSONPath jsonPath = new UtilJSONPath(root);
+        JsonPath jsonPath = new JsonPath(root);
         String actual;
 
         // override primitive in array to object

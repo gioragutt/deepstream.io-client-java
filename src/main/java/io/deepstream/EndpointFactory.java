@@ -7,5 +7,5 @@ import java.net.URISyntaxException;
 
 interface EndpointFactory {
     @ObjectiveCName("createEndpoint:connection:")
-    Endpoint createEndpoint(URI uri, Connection connection) throws URISyntaxException;
+    Endpoint createEndpoint(URI uri, Connection connection);
 }

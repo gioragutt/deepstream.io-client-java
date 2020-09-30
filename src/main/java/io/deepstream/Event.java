@@ -3,6 +3,10 @@ package io.deepstream;
 import com.google.j2objc.annotations.ObjectiveCName;
 
 import java.util.EnumSet;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Provides all the different events that may occur. Most are related to errors for finer debugging and logging
@@ -90,14 +94,11 @@ public enum Event {
      */
     MULTIPLE_SUBSCRIPTIONS;
 
+    private static final Map<String, Event> VALUES = EnumSet.allOf(Event.class).stream()
+            .collect(Collectors.toMap(Objects::toString, Function.identity()));
+
     @ObjectiveCName("getEvent:")
     static Event getEvent(String event) {
-
-        for (Event s : EnumSet.allOf(Event.class)) {
-            if (s.name().equals(event)) {
-                return s;
-            }
-        }
-        return null;
+        return VALUES.get(event);
     }
 }

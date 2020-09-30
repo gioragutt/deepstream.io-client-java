@@ -24,6 +24,10 @@ class Connection implements IConnection {
     private final ArrayList<ConnectionStateListener> connectStateListeners;
     private final DeepstreamConfig options;
     private final EndpointFactory endpointFactory;
+    private final ExecutorService rpcThread;
+    private final ExecutorService recordThread;
+    private final ExecutorService eventThread;
+    private final ExecutorService presenceThread;
     private Endpoint endpoint;
     private boolean tooManyAuthAttempts;
     private boolean challengeDenied;
@@ -37,11 +41,6 @@ class Connection implements IConnection {
     private GlobalConnectivityState globalConnectivityState;
     private DeepstreamClient.LoginCallback loginCallback;
     private JsonElement authParameters;
-
-    private final ExecutorService rpcThread;
-    private final ExecutorService recordThread;
-    private final ExecutorService eventThread;
-    private final ExecutorService presenceThread;
 
     /**
      * Creates an endpoint and passed it to {@link Connection#Connection(String, DeepstreamConfig, DeepstreamClient, EndpointFactory, Endpoint)}
@@ -73,7 +72,7 @@ class Connection implements IConnection {
 
     public Connection(String url, DeepstreamConfig options, DeepstreamClient client, EndpointFactory endpointFactory, Endpoint endpoint) {
         this.client = client;
-        this.connectStateListeners = new ArrayList<ConnectionStateListener>();
+        this.connectStateListeners = new ArrayList<>();
         this.originalUrl = url;
         this.url = url;
         this.connectionState = ConnectionState.CLOSED;
@@ -207,42 +206,30 @@ class Connection implements IConnection {
 
     @ObjectiveCName("onMessage:")
     void onMessage(String rawMessage) {
-        List<Message> parsedMessages = MessageParser.parse(rawMessage, this.client);
+        List<Message> parsedMessages = MessageParser.parse(rawMessage, client);
         for (final Message message : parsedMessages) {
-            if (message.topic == Topic.CONNECTION) {
-                handleConnectionResponse(message);
-            } else if (message.topic == Topic.AUTH) {
-                handleAuthResponse(message);
-            } else if (message.topic == Topic.EVENT) {
-                this.eventThread.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        client.event.handle(message);
-                    }
-                });
-            } else if (message.topic == Topic.RPC) {
-                this.rpcThread.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        client.rpc.handle(message);
-                    }
-                });
-            } else if (message.topic == Topic.RECORD) {
-                this.recordThread.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        client.record.handle(message);
-                    }
-                });
-            } else if (message.topic == Topic.PRESENCE) {
-                this.presenceThread.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        client.presence.handle(message);
-                    }
-                });
-            } else {
-                this.client.onError(Topic.ERROR, Event.UNSOLICITED_MESSAGE, message.action.toString());
+            switch (message.topic) {
+                case CONNECTION:
+                    handleConnectionResponse(message);
+                    break;
+                case AUTH:
+                    handleAuthResponse(message);
+                    break;
+                case EVENT:
+                    eventThread.execute(() -> client.event.handle(message));
+                    break;
+                case RPC:
+                    rpcThread.execute(() -> client.rpc.handle(message));
+                    break;
+                case RECORD:
+                    recordThread.execute(() -> client.record.handle(message));
+                    break;
+                case PRESENCE:
+                    presenceThread.execute(() -> client.presence.handle(message));
+                    break;
+                default:
+                    client.onError(Topic.ERROR, Event.UNSOLICITED_MESSAGE, message.action.toString());
+                    break;
             }
         }
     }
@@ -266,21 +253,27 @@ class Connection implements IConnection {
 
     @ObjectiveCName("handleConnectionResponse:")
     private void handleConnectionResponse(Message message) {
-        if (message.action == Actions.PING) {
-            this.endpoint.send(MessageBuilder.getMsg(Topic.CONNECTION, Actions.PONG));
-        } else if (message.action == Actions.ACK) {
-            this.setState(ConnectionState.AWAITING_AUTHENTICATION);
-        } else if (message.action == Actions.CHALLENGE) {
-            this.setState(ConnectionState.CHALLENGING);
-            this.endpoint.send(MessageBuilder.getMsg(Topic.CONNECTION, Actions.CHALLENGE_RESPONSE, this.originalUrl));
-        } else if (message.action == Actions.REJECTION) {
-            this.challengeDenied = true;
-            this.close(false);
-        } else if (message.action == Actions.REDIRECT) {
-            this.url = message.data[0];
-            this.redirecting = true;
-            this.endpoint.close();
-            this.endpoint = null;
+        switch (message.action) {
+            case PING:
+                this.endpoint.send(MessageBuilder.getMsg(Topic.CONNECTION, Actions.PONG));
+                break;
+            case ACK:
+                this.setState(ConnectionState.AWAITING_AUTHENTICATION);
+                break;
+            case CHALLENGE:
+                this.setState(ConnectionState.CHALLENGING);
+                this.endpoint.send(MessageBuilder.getMsg(Topic.CONNECTION, Actions.CHALLENGE_RESPONSE, this.originalUrl));
+                break;
+            case REJECTION:
+                this.challengeDenied = true;
+                this.close(false);
+                break;
+            case REDIRECT:
+                this.url = message.data[0];
+                this.redirecting = true;
+                this.endpoint.close();
+                this.endpoint = null;
+                break;
         }
     }
 
@@ -336,7 +329,7 @@ class Connection implements IConnection {
     /**
      * Set global connectivity state.
      *
-     * @param {GlobalConnectivityState} globalConnectivityState Current global connectivity state
+     * @param globalConnectivityState Current global connectivity state
      */
     protected void setGlobalConnectivityState(GlobalConnectivityState globalConnectivityState) {
         this.globalConnectivityState = globalConnectivityState;
@@ -359,9 +352,9 @@ class Connection implements IConnection {
      * Take the url passed when creating the client and ensure the correct
      * protocol is provided
      *
-     * @param {String} url Url passed in by client
-     * @param {String} defaultPath Default path to concatenate if one doest not exist
-     * @return {String} Url with supported protocol
+     * @param url         Url passed in by client
+     * @param defaultPath Default path to concatenate if one doest not exist
+     * @return Url with supported protocol
      */
     private URI parseUri(String url, String defaultPath) throws URISyntaxException {
         if (url.startsWith("http:") || url.startsWith("https:")) {
@@ -395,25 +388,28 @@ class Connection implements IConnection {
         int reconnectIntervalIncrement = options.getReconnectIntervalIncrement();
         int maxReconnectInterval = options.getMaxReconnectInterval();
 
-        if (this.reconnectionAttempt < maxReconnectAttempts) {
-            if (this.globalConnectivityState == GlobalConnectivityState.CONNECTED) {
-                this.setState(ConnectionState.RECONNECTING);
-                this.reconnectTimeout = new Timer();
-                this.reconnectTimeout.schedule(new TimerTask() {
-                    public void run() {
-                        tryOpen();
-                    }
-                }, Math.min(
-                        reconnectIntervalIncrement * this.reconnectionAttempt,
-                        maxReconnectInterval
-                ));
-                this.reconnectionAttempt++;
-            }
-
-        } else {
+        if (this.reconnectionAttempt >= maxReconnectAttempts) {
             this.clearReconnect();
             this.close(true);
+            return;
         }
+
+        if (this.globalConnectivityState == GlobalConnectivityState.CONNECTED) {
+            this.setState(ConnectionState.RECONNECTING);
+            this.reconnectTimeout = new Timer();
+
+            int reconnectInterval = Math.min(
+                    reconnectIntervalIncrement * this.reconnectionAttempt,
+                    maxReconnectInterval);
+
+            this.reconnectTimeout.schedule(new TimerTask() {
+                public void run() {
+                    tryOpen();
+                }
+            }, reconnectInterval);
+            this.reconnectionAttempt++;
+        }
+
     }
 
     private void tryOpen() {

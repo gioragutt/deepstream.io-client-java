@@ -2,12 +2,12 @@ package io.deepstream;
 
 import com.google.j2objc.annotations.ObjectiveCName;
 
-class Rpc implements UtilTimeoutListener {
+class Rpc implements TimeoutListener {
 
     private final String uid;
-    private final UtilAckTimeoutRegistry ackTimeoutRegistry;
+    private final AckTimeoutRegistry ackTimeoutRegistry;
     private final DeepstreamConfig deepstreamConfig;
-    private final DeepstreamClientAbstract client;
+    private final AbstractDeepstreamClient client;
     private final RpcHandler.RpcResponseCallback callback;
     private final String rpcName;
 
@@ -23,7 +23,7 @@ class Rpc implements UtilTimeoutListener {
      * @param callback         The callback when an RPC has been completed
      */
     @ObjectiveCName("init:client:rpcName:uid:callback:")
-    Rpc(DeepstreamConfig deepstreamConfig, DeepstreamClientAbstract client, String rpcName, String uid, RpcHandler.RpcResponseCallback callback) {
+    Rpc(DeepstreamConfig deepstreamConfig, AbstractDeepstreamClient client, String rpcName, String uid, RpcHandler.RpcResponseCallback callback) {
         this.deepstreamConfig = deepstreamConfig;
         this.client = client;
         this.rpcName = rpcName;

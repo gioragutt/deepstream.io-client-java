@@ -10,8 +10,8 @@ import java.util.Properties;
 import static org.mockito.Mockito.*;
 
 public class ListChangedTest {
-    DeepstreamClientMock deepstreamClientMock;
-    ConnectionMock connectionMock;
+    MockDeepstreamClient deepstreamClientMock;
+    MockConnection mockConnection;
     RecordHandler recordHandler;
     DeepstreamRuntimeErrorHandler errorCallbackMock;
     List list;
@@ -23,9 +23,9 @@ public class ListChangedTest {
     @Before
     public void setUp() throws InvalidDeepstreamConfig {
 
-        this.connectionMock = new ConnectionMock();
+        this.mockConnection = new MockConnection();
         this.errorCallbackMock = mock(DeepstreamRuntimeErrorHandler.class);
-        this.deepstreamClientMock = new DeepstreamClientMock();
+        this.deepstreamClientMock = new MockDeepstreamClient();
         this.deepstreamClientMock.setRuntimeErrorHandler(errorCallbackMock);
         this.deepstreamClientMock.setConnectionState(ConnectionState.OPEN);
 
@@ -35,7 +35,7 @@ public class ListChangedTest {
         options.put("recordReadAckTimeout", "10");
         options.put("recordReadTimeout", "20");
 
-        recordHandler = new RecordHandler(new DeepstreamConfig(options), connectionMock, deepstreamClientMock);
+        recordHandler = new RecordHandler(new DeepstreamConfig(options), mockConnection, deepstreamClientMock);
         recordEventsListener = mock(RecordEventsListener.class);
         listChangedListener = mock(ListChangedListener.class);
         listEntryChangedListener = mock(ListEntryChangedListener.class);
@@ -52,7 +52,7 @@ public class ListChangedTest {
 
         try {
             Thread.sleep(300);
-            recordHandler.handle(MessageParser.parseMessage(TestUtil.replaceSeperators("R|R|someList|1|[\"a\",\"b\",\"c\",\"d\",\"e\"]"), deepstreamClientMock));
+            recordHandler.handle(MessageParser.parseMessage(TestUtil.formatMessage("R|R|someList|1|[\"a\",\"b\",\"c\",\"d\",\"e\"]"), deepstreamClientMock));
             Thread.sleep(300);
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -77,7 +77,7 @@ public class ListChangedTest {
 
     @Test
     public void entryAddedRemotelyTest() {
-        recordHandler.handle(MessageParser.parseMessage(TestUtil.replaceSeperators("R|R|someList|2|[\"a\",\"b\",\"c\",\"d\",\"e\",\"f\"]"), deepstreamClientMock));
+        recordHandler.handle(MessageParser.parseMessage(TestUtil.formatMessage("R|R|someList|2|[\"a\",\"b\",\"c\",\"d\",\"e\",\"f\"]"), deepstreamClientMock));
         verify(listEntryChangedListener, times(1)).onEntryAdded(listName, "f", 5);
     }
 

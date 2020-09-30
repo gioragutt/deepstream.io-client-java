@@ -8,11 +8,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * A List is a specialised Record that contains
  * an Array of recordNames and provides a number
- * of convinience methods for interacting with them.
+ * of convenience methods for interacting with them.
  */
 public class List {
 
@@ -33,8 +34,8 @@ public class List {
     List(RecordHandler recordHandler, String name) {
         this.record = recordHandler.getRecord(name);
         this.recordListeners = new List.RecordListeners(this, this.record);
-        this.listChangedListeners = new ArrayList<ListChangedListener>();
-        this.listEntryChangedListeners = new ArrayList<ListEntryChangedListener>();
+        this.listChangedListeners = new ArrayList<>();
+        this.listEntryChangedListeners = new ArrayList<>();
         this.gson = new Gson();
     }
 
@@ -106,14 +107,12 @@ public class List {
      *
      * @return A List containing all the recordNames
      */
-    @SuppressWarnings("unchecked")
     public String[] getEntries() {
-        String[] entries = {};
         try {
-            entries = this.record.get(String[].class);
+            return this.record.get(String[].class);
         } catch (Exception ex) {
+            return new String[]{};
         }
-        return entries;
     }
 
     /**
@@ -134,14 +133,12 @@ public class List {
      *
      * @return A List containing all the recordNames
      */
-    private ArrayList getEntriesArrayList() {
-        ArrayList<String> entries = null;
+    private java.util.List<String> getEntriesArrayList() {
         try {
-            entries = this.record.get(ArrayList.class);
+            return new ArrayList<>(Arrays.asList(getEntries()));
         } catch (Exception ex) {
-            entries = new ArrayList<String>();
+            return new ArrayList<>();
         }
-        return entries;
     }
 
     /**
@@ -152,10 +149,11 @@ public class List {
      */
     @ObjectiveCName("removeEntry:")
     public List removeEntry(String entry) {
-        java.util.List entries = this.getEntriesArrayList();
-        while (entries.contains(entry)) entries.remove(entry);
-        this.updateList((String[]) entries.toArray(new String[]{}));
-        return this;
+        return readAndUpdateList(entries -> {
+            while (entries.contains(entry)) {
+                entries.remove(entry);
+            }
+        });
     }
 
     /**
@@ -168,12 +166,11 @@ public class List {
      */
     @ObjectiveCName("removeEntry:index:")
     public List removeEntry(String entry, int index) {
-        ArrayList entries = this.getEntriesArrayList();
-        if (entries.get(index).equals(entry)) {
-            entries.remove(index);
-        }
-        this.updateList((String[]) entries.toArray(new String[]{}));
-        return this;
+        return readAndUpdateList(entries -> {
+            if (entries.get(index).equals(entry)) {
+                entries.remove(index);
+            }
+        });
     }
 
     /**
@@ -184,10 +181,7 @@ public class List {
      */
     @ObjectiveCName("addEntry:")
     public List addEntry(String entry) {
-        ArrayList entries = this.getEntriesArrayList();
-        entries.add(entry);
-        this.updateList((String[]) entries.toArray(new String[]{}));
-        return this;
+        return readAndUpdateList(entries -> entries.add(entry));
     }
 
     /**
@@ -199,9 +193,13 @@ public class List {
      */
     @ObjectiveCName("addEntry:index:")
     public List addEntry(String entry, int index) {
-        java.util.List entries = this.getEntriesArrayList();
-        entries.add(index, entry);
-        this.updateList((String[]) entries.toArray(new String[]{}));
+        return readAndUpdateList(entries -> entries.add(index, entry));
+    }
+
+    private List readAndUpdateList(Consumer<java.util.List<String>> update) {
+        java.util.List<String> entries = this.getEntriesArrayList();
+        update.accept(entries);
+        updateList(entries.toArray(new String[]{}));
         return this;
     }
 
@@ -328,8 +326,8 @@ public class List {
     @ObjectiveCName("updateList:")
     private void updateList(String[] entries) {
         Map<String, ArrayList<Integer>> oldStructure = this.beforeChange();
-        this.record.set(gson.toJsonTree(entries));
-        this.afterChange(oldStructure);
+        record.set(gson.toJsonTree(entries));
+        afterChange(oldStructure);
     }
 
     /**
@@ -362,8 +360,8 @@ public class List {
 
             for (Integer index : oldIndexes) {
                 if (newIndexes == null) {
-                    for (ListEntryChangedListener listEntryChangedListener : this.listEntryChangedListeners) {
-                        listEntryChangedListener.onEntryRemoved(this.name(), entryName, index);
+                    for (ListEntryChangedListener listEntryChangedListener : listEntryChangedListeners) {
+                        listEntryChangedListener.onEntryRemoved(name(), entryName, index);
                     }
                 }
             }
@@ -409,13 +407,13 @@ public class List {
      * }
      */
     private Map<String, ArrayList<Integer>> getStructure() {
-        Map<String, ArrayList<Integer>> structure = new HashMap<String, ArrayList<Integer>>();
+        Map<String, ArrayList<Integer>> structure = new HashMap<>();
         java.util.List<String> entries = Arrays.asList(this.getEntries());
 
         for (int i = 0; i < entries.size(); i++) {
             ArrayList<Integer> list = structure.get(entries.get(i));
             if (list == null) {
-                list = new ArrayList<Integer>();
+                list = new ArrayList<>();
                 structure.put(entries.get(i), list);
             }
             list.add(i);

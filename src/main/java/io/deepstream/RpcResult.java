@@ -30,7 +30,7 @@ public class RpcResult {
      * @return true if the Request was completed successfully
      */
     public boolean success() {
-        return this.success;
+        return success;
     }
 
     /**
@@ -40,6 +40,6 @@ public class RpcResult {
      * @return the object the provider returned
      */
     public Object getData() {
-        return this.data;
+        return data;
     }
 }

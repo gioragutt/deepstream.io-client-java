@@ -2,10 +2,7 @@ package io.deepstream;
 
 import com.google.j2objc.annotations.ObjectiveCName;
 
-import java.util.EnumSet;
-import java.util.HashMap;
 import java.util.Map;
-
 
 enum Types {
     /**
@@ -44,12 +41,7 @@ enum Types {
      */
     UNDEFINED("U");
 
-    private static final Map<String, Types> lookup = new HashMap<String, Types>();
-
-    static {
-        for (Types s : EnumSet.allOf(Types.class))
-            lookup.put(s.toString(), s);
-    }
+    private static final Map<String, Types> LOOKUP = Utils.createEnumLookup(Types.class);
 
     private final String type;
 
@@ -60,7 +52,7 @@ enum Types {
 
     @ObjectiveCName("getType:")
     static Types getType(char type) {
-        return lookup.get(type + "");
+        return LOOKUP.get(type + "");
     }
 
     @Override

@@ -7,21 +7,22 @@ import com.google.j2objc.annotations.ObjectiveCName;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 
-class UtilSingleNotifier implements UtilResubscribeNotifier.UtilResubscribeListener, UtilTimeoutListener {
+class SingleNotifier implements ResubscribeNotifier.ResubscribeListener, TimeoutListener {
 
     private final Topic topic;
     private final Actions action;
     private final int timeoutDuration;
     private final IConnection connection;
-    private final Map<String, ArrayList<UtilSingleNotifierCallback>> requests;
-    private final UtilAckTimeoutRegistry ackTimeoutRegistry;
-    private final UtilResubscribeNotifier utilResubscribeNotifier;
+    private final Map<String, ArrayList<SingleNotifierCallback>> requests;
+    private final AckTimeoutRegistry ackTimeoutRegistry;
+    private final ResubscribeNotifier resubscribeNotifier;
 
     /**
      * Provides a scaffold for subscriptionless requests to io.deepstream.gherkin, such as the SNAPSHOT
      * and HAS functionality. The SingleNotifier multiplexes all the client requests so
-     * that they can can be notified at once, and also includes reconnection funcionality
+     * that they can can be notified at once, and also includes reconnection functionality
      * incase the connection drops.
      *
      * @param client          The deepstream client
@@ -31,15 +32,15 @@ class UtilSingleNotifier implements UtilResubscribeNotifier.UtilResubscribeListe
      * @param timeoutDuration The timeout duration before an ack timeout is triggered
      */
     @ObjectiveCName("init:connection:topic:action:timeoutDuration:")
-    public UtilSingleNotifier(DeepstreamClientAbstract client, IConnection connection, Topic topic, Actions action, int timeoutDuration) {
+    public SingleNotifier(AbstractDeepstreamClient client, IConnection connection, Topic topic, Actions action, int timeoutDuration) {
         this.ackTimeoutRegistry = client.getAckTimeoutRegistry();
         this.connection = connection;
         this.topic = topic;
         this.action = action;
         this.timeoutDuration = timeoutDuration;
 
-        this.utilResubscribeNotifier = new UtilResubscribeNotifier(client, this);
-        this.requests = new ConcurrentHashMap<String, ArrayList<UtilSingleNotifierCallback>>();
+        this.resubscribeNotifier = new ResubscribeNotifier(client, this);
+        this.requests = new ConcurrentHashMap<>();
     }
 
     /**
@@ -57,44 +58,45 @@ class UtilSingleNotifier implements UtilResubscribeNotifier.UtilResubscribeListe
      * Add a request. If one has already been made it will skip the server request
      * and multiplex the response
      *
-     * @param name                       The name of the object being requested
-     * @param utilSingleNotifierCallback The callback to call once the request is completed
+     * @param name                   The name of the object being requested
+     * @param singleNotifierCallback The callback to call once the request is completed
      */
     @ObjectiveCName("request:utilSingleNotifierCallback:")
-    public void request(String name, UtilSingleNotifierCallback utilSingleNotifierCallback) {
-        ArrayList<UtilSingleNotifierCallback> callbacks = requests.get(name);
-        if (callbacks == null) {
-            synchronized (this) {
-                callbacks = new ArrayList<UtilSingleNotifierCallback>();
+    public void request(String name, SingleNotifierCallback singleNotifierCallback) {
+        ArrayList<SingleNotifierCallback> callbacks;
+        synchronized (this) {
+            callbacks = requests.get(name);
+            if (callbacks == null) {
+                callbacks = new ArrayList<>();
                 requests.put(name, callbacks);
                 send(name);
             }
         }
 
-        callbacks.add(utilSingleNotifierCallback);
+        callbacks.add(singleNotifierCallback);
         ackTimeoutRegistry.add(topic, action, name, Event.RESPONSE_TIMEOUT, this, timeoutDuration);
     }
 
     /**
      * Add a request where a response may contain more than one bit of data. Commonly used with
-     * {@link UtilSingleNotifier#receive(JsonArray, DeepstreamError)}
+     * {@link SingleNotifier#receive(JsonArray, DeepstreamError)}
      *
-     * @param name                       The name or version to store callbacks on
-     * @param data                       The data to send in the request
-     * @param action                     The action to send with the request
-     * @param utilSingleNotifierCallback The callback to call once the request is completed
+     * @param name                   The name or version to store callbacks on
+     * @param data                   The data to send in the request
+     * @param action                 The action to send with the request
+     * @param singleNotifierCallback The callback to call once the request is completed
      */
-    public void request(String name, Actions action, String[] data, UtilSingleNotifierCallback utilSingleNotifierCallback) {
-        ArrayList<UtilSingleNotifierCallback> callbacks = requests.get(name);
+    public void request(String name, Actions action, String[] data, SingleNotifierCallback singleNotifierCallback) {
+        ArrayList<SingleNotifierCallback> callbacks = requests.get(name);
         if (callbacks == null) {
             synchronized (this) {
-                callbacks = new ArrayList<UtilSingleNotifierCallback>();
+                callbacks = new ArrayList<>();
                 requests.put(name, callbacks);
                 send(action, data);
             }
         }
 
-        callbacks.add(utilSingleNotifierCallback);
+        callbacks.add(singleNotifierCallback);
     }
 
     /**
@@ -107,8 +109,8 @@ class UtilSingleNotifier implements UtilResubscribeNotifier.UtilResubscribeListe
      */
     @ObjectiveCName("receive:error:data:")
     public void receive(String name, DeepstreamError error, Object data) {
-        ArrayList<UtilSingleNotifierCallback> callbacks = requests.get(name);
-        for (UtilSingleNotifierCallback callback : callbacks) {
+        ArrayList<SingleNotifierCallback> callbacks = requests.get(name);
+        for (SingleNotifierCallback callback : callbacks) {
             ackTimeoutRegistry.clear(topic, action, name);
             if (error != null) {
                 callback.onSingleNotifierError(name, error);
@@ -124,15 +126,15 @@ class UtilSingleNotifier implements UtilResubscribeNotifier.UtilResubscribeListe
      * data from multiple messages has been merged into one deepstream message to save network
      * traffic.
      * <p>
-     * Used in conjunction with {@link UtilSingleNotifier#request(String, Actions, String[], UtilSingleNotifierCallback)}
+     * Used in conjunction with {@link SingleNotifier#request(String, Actions, String[], SingleNotifierCallback)}
      *
      * @param data  The data received in the message
      * @param error Any errors from the message
      */
     public void receive(JsonArray data, DeepstreamError error) {
         for (JsonElement version : data) {
-            ArrayList<UtilSingleNotifierCallback> callbacks = requests.get(version.getAsString());
-            UtilSingleNotifierCallback cb = callbacks.get(0);
+            ArrayList<SingleNotifierCallback> callbacks = requests.get(version.getAsString());
+            SingleNotifierCallback cb = callbacks.get(0);
             if (error != null) {
                 cb.onSingleNotifierError(null, error);
             } else {
@@ -143,7 +145,7 @@ class UtilSingleNotifier implements UtilResubscribeNotifier.UtilResubscribeListe
     }
 
     void destroy() {
-        this.utilResubscribeNotifier.destroy();
+        this.resubscribeNotifier.destroy();
         this.requests.clear();
     }
 
@@ -166,14 +168,58 @@ class UtilSingleNotifier implements UtilResubscribeNotifier.UtilResubscribeListe
     @Override
     @ObjectiveCName("onTimeout:action:event:name:")
     public void onTimeout(Topic topic, Actions action, Event event, String name) {
-        this.receive(name, new DeepstreamError(String.format("Response for % timed out", name)), null);
+        this.receive(name, new DeepstreamError(String.format("Response for %s timed out", name)), null);
     }
 
-    interface UtilSingleNotifierCallback {
+    interface SingleNotifierCallback {
         @ObjectiveCName("onSingleNotifierError:error:")
         void onSingleNotifierError(String name, DeepstreamError error);
 
         @ObjectiveCName("onSingleNotifierResponse:data:")
         void onSingleNotifierResponse(String name, Object data);
     }
+
+    static class CommonRequestCallback<D> implements SingleNotifierCallback {
+        private D data;
+        private DeepstreamError error;
+
+        private final CountDownLatch snapshotLatch = new CountDownLatch(1);
+
+        @Override
+        @ObjectiveCName("onSingleNotifierError:error:")
+        public void onSingleNotifierError(String name, DeepstreamError error) {
+            this.error = error;
+            snapshotLatch.countDown();
+        }
+
+        @Override
+        @ObjectiveCName("onSingleNotifierResponse:recordData:")
+        public void onSingleNotifierResponse(String name, Object recordData) {
+            data = (D) recordData;
+            snapshotLatch.countDown();
+        }
+
+        void waitForResponse() {
+            try {
+                snapshotLatch.await();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+
+        D data() {
+            return data;
+        }
+
+        DeepstreamError error() {
+            return error;
+        }
+
+        void throwIfError() throws DeepstreamError {
+            if (error != null) {
+                throw error;
+            }
+        }
+    }
 }
+

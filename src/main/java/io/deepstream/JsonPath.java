@@ -9,11 +9,11 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Objects;
 
-class UtilJSONPath {
+class JsonPath {
 
     private JsonElement coreElement;
 
-    public UtilJSONPath(JsonElement e) {
+    public JsonPath(JsonElement e) {
         this.coreElement = e;
     }
 
@@ -290,36 +290,5 @@ class UtilJSONPath {
 
     public void setCoreElement(JsonElement coreElement) {
         this.coreElement = coreElement;
-    }
-
-    public class Array implements Iterable<UtilJSONPath> {
-        private final JsonArray root;
-        private JsonElement coreElement;
-
-        public Array(JsonArray root) {
-            this.root = root;
-        }
-
-        @Override
-        public Iterator<UtilJSONPath> iterator() {
-            return new Iterator<UtilJSONPath>() {
-                final Iterator<JsonElement> it = root.iterator();
-
-                @Override
-                public boolean hasNext() {
-                    return it.hasNext();
-                }
-
-                @Override
-                public UtilJSONPath next() {
-                    return new UtilJSONPath(it.next());
-                }
-
-                @Override
-                public void remove() {
-                    it.remove();
-                }
-            };
-        }
     }
 }

@@ -10,10 +10,10 @@ import com.google.j2objc.annotations.ObjectiveCName;
  * <p>
  * Resubscribe logic should only occur once per connection loss
  */
-class UtilResubscribeNotifier implements ConnectionStateListener {
+class ResubscribeNotifier implements ConnectionStateListener {
 
-    private DeepstreamClientAbstract client;
-    private UtilResubscribeListener resubscribe;
+    private AbstractDeepstreamClient client;
+    private ResubscribeListener resubscribe;
     private boolean isReconnecting;
 
     /**
@@ -23,7 +23,7 @@ class UtilResubscribeNotifier implements ConnectionStateListener {
      * @param callback the resubscribe callback
      */
     @ObjectiveCName("init:callback:")
-    public UtilResubscribeNotifier(DeepstreamClientAbstract client, UtilResubscribeListener callback) {
+    public ResubscribeNotifier(AbstractDeepstreamClient client, ResubscribeListener callback) {
         this.client = client;
         this.resubscribe = callback;
         this.isReconnecting = false;
@@ -55,7 +55,7 @@ class UtilResubscribeNotifier implements ConnectionStateListener {
         }
     }
 
-    interface UtilResubscribeListener {
+    interface ResubscribeListener {
         void resubscribe();
     }
 }

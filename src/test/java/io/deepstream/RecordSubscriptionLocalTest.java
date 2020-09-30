@@ -22,17 +22,17 @@ import static org.mockito.Mockito.*;
 public class RecordSubscriptionLocalTest {
 
     private Record record;
-    private ConnectionMock connectionMock;
-    private DeepstreamClientMock deepstreamClientMock;
+    private MockConnection mockConnection;
+    private MockDeepstreamClient deepstreamClientMock;
     private DeepstreamRuntimeErrorHandler errorCallbackMock;
     private RecordChangedCallback recordChangedCallback;
     private RecordPathChangedCallback recordPathChangedCallback;
 
     @Before
     public void setUp() throws DeepstreamRecordDestroyedException, InvalidDeepstreamConfig {
-        this.connectionMock = new ConnectionMock();
+        this.mockConnection = new MockConnection();
         this.errorCallbackMock = mock(DeepstreamRuntimeErrorHandler.class);
-        this.deepstreamClientMock = new DeepstreamClientMock();
+        this.deepstreamClientMock = new MockDeepstreamClient();
         this.deepstreamClientMock.setRuntimeErrorHandler(errorCallbackMock);
         this.deepstreamClientMock.setConnectionState(ConnectionState.OPEN);
 
@@ -42,9 +42,9 @@ public class RecordSubscriptionLocalTest {
         options.put("recordReadAckTimeout", "10");
         options.put("recordReadTimeout", "20");
 
-        this.record = new Record("testRecord", new HashMap(), connectionMock, new DeepstreamConfig(options), deepstreamClientMock);
-        record.onMessage(MessageParser.parseMessage(TestUtil.replaceSeperators("R|A|S|testRecord"), deepstreamClientMock));
-        record.onMessage(MessageParser.parseMessage(TestUtil.replaceSeperators("R|R|testRecord|0|{}"), deepstreamClientMock));
+        this.record = new Record("testRecord", new HashMap(), mockConnection, new DeepstreamConfig(options), deepstreamClientMock);
+        record.onMessage(MessageParser.parseMessage(TestUtil.formatMessage("R|A|S|testRecord"), deepstreamClientMock));
+        record.onMessage(MessageParser.parseMessage(TestUtil.formatMessage("R|R|testRecord|0|{}"), deepstreamClientMock));
         Assert.assertEquals(new JsonObject(), record.get());
 
         recordChangedCallback = mock(RecordChangedCallback.class);

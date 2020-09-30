@@ -83,6 +83,6 @@ public enum ConfigOptions {
 
     @Override
     public String toString() {
-        return this.configOption;
+        return configOption;
     }
 }

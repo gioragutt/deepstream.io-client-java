@@ -15,15 +15,13 @@ import java.util.Properties;
  */
 public class DeepstreamFactory {
     private static final DeepstreamFactory ourInstance = new DeepstreamFactory();
-    Map<String, DeepstreamClient> clients;
-    String lastUrl;
+    private final Map<String, DeepstreamClient> clients = new HashMap<>();
+    private String lastUrl;
 
     /**
      * DeepstreamFactory is a map of all url connections created
      */
     private DeepstreamFactory() {
-        this.clients = new HashMap();
-        this.lastUrl = null;
     }
 
     public static DeepstreamFactory getInstance() {
@@ -75,10 +73,10 @@ public class DeepstreamFactory {
      */
     @ObjectiveCName("getClient:options:")
     public DeepstreamClient getClient(String url, Properties options) throws URISyntaxException, InvalidDeepstreamConfig {
-        DeepstreamClient client = this.clients.get(url);
+        DeepstreamClient client = clients.get(url);
         if (clientDoesNotExist(client)) {
             client = new DeepstreamClient(url, new DeepstreamConfig(options), new JavaEndpointFactory());
-            this.clients.put(url, client);
+            clients.put(url, client);
         }
         return client;
     }

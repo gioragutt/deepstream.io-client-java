@@ -5,7 +5,7 @@ import com.google.j2objc.annotations.ObjectiveCName;
 /**
  * The expectations would be for java clients to implement this and add it
  * via the *setDeepstreamRuntimeErrorHandler* handler in order to catch all
- * runtime errors that can occur without requiring to listening to it on seperate
+ * runtime errors that can occur without requiring to listening to it on separate
  * threads.
  * <p>
  * IMPORTANT: Errors that are specific to a request, e.g. a RPC
@@ -15,11 +15,11 @@ import com.google.j2objc.annotations.ObjectiveCName;
 public interface DeepstreamRuntimeErrorHandler {
 
     /**
-     * Triggered whenever a runtime error occurs ( mostly async such as TimeOuts or MergeConflicts ).
-     * Receives a topic to indicate if it was e.g. RPC, event and a english error message to simplify
+     * Triggered whenever a runtime error occurs (mostly async such as TimeOuts or MergeConflicts).
+     * Receives a topic to indicate if it was e.g. RPC, event and an english error message to simplify
      * debugging purposes.
      *
-     * @param topic        The Topic the error occured on
+     * @param topic        The Topic the error occurred on
      * @param event        The Error Event
      * @param errorMessage The error message
      */

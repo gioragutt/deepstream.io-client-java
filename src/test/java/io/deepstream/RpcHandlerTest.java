@@ -17,8 +17,8 @@ import static org.mockito.Mockito.*;
 @RunWith(JUnit4.class)
 public class RpcHandlerTest {
 
-    DeepstreamClientMock deepstreamClientMock;
-    ConnectionMock connectionMock;
+    MockDeepstreamClient deepstreamClientMock;
+    MockConnection mockConnection;
     RpcHandler rpcHandler;
     int rpcCalls = 0;
     RpcRequestedListener addTwoCallback = new RpcRequestedListener() {
@@ -35,10 +35,10 @@ public class RpcHandlerTest {
 
     @Before
     public void setUp() throws URISyntaxException, InvalidDeepstreamConfig {
-        this.connectionMock = new ConnectionMock();
-        this.connectionMock.state = ConnectionState.OPEN;
+        this.mockConnection = new MockConnection();
+        this.mockConnection.state = ConnectionState.OPEN;
         this.errorCallbackMock = mock(DeepstreamRuntimeErrorHandler.class);
-        this.deepstreamClientMock = new DeepstreamClientMock();
+        this.deepstreamClientMock = new MockDeepstreamClient();
         this.deepstreamClientMock.setRuntimeErrorHandler(errorCallbackMock);
         this.deepstreamClientMock.setConnectionState(ConnectionState.OPEN);
 
@@ -46,7 +46,7 @@ public class RpcHandlerTest {
         options.put("subscriptionTimeout", "10");
         options.put("rpcAckTimeout", "10");
         options.put("rpcResponseTimeout", "30");
-        this.rpcHandler = new RpcHandler(new DeepstreamConfig(options), connectionMock, deepstreamClientMock);
+        this.rpcHandler = new RpcHandler(new DeepstreamConfig(options), mockConnection, deepstreamClientMock);
     }
 
     @After
@@ -56,9 +56,9 @@ public class RpcHandlerTest {
 
     @Test
     public void registersAProvider() {
-        Assert.assertNull(connectionMock.lastSentMessage);
+        Assert.assertNull(mockConnection.lastSentMessage);
         rpcHandler.provide("addTwo", addTwoCallback);
-        Assert.assertEquals(TestUtil.replaceSeperators("P|S|addTwo+"), connectionMock.lastSentMessage);
+        Assert.assertEquals(TestUtil.formatMessage("P|S|addTwo+"), mockConnection.lastSentMessage);
         Assert.assertEquals(rpcCalls, 0);
     }
 
@@ -79,7 +79,7 @@ public class RpcHandlerTest {
                 Actions.REQUEST,
                 new String[]{"addTwo", "123", "O{\"numA\":7,\"numB\":3}"}
         ));
-        Assert.assertEquals(TestUtil.replaceSeperators("P|RES|addTwo|123|N10.0+"), connectionMock.lastSentMessage);
+        Assert.assertEquals(TestUtil.formatMessage("P|RES|addTwo|123|N10.0+"), mockConnection.lastSentMessage);
     }
 
     @Test
@@ -91,14 +91,14 @@ public class RpcHandlerTest {
                         Actions.REQUEST,
                         new String[]{"doesNotExist", "123", "O{\"numA\":7,\"numB\":3}"})
         );
-        Assert.assertEquals(TestUtil.replaceSeperators("P|REJ|doesNotExist|123+"), connectionMock.lastSentMessage);
+        Assert.assertEquals(TestUtil.formatMessage("P|REJ|doesNotExist|123+"), mockConnection.lastSentMessage);
     }
 
     @Test
     public void deregistersAProvider() {
         rpcHandler.provide("addTwo", addTwoCallback);
         rpcHandler.unprovide("addTwo");
-        Assert.assertEquals(TestUtil.replaceSeperators("P|US|addTwo+"), connectionMock.lastSentMessage);
+        Assert.assertEquals(TestUtil.formatMessage("P|US|addTwo+"), mockConnection.lastSentMessage);
     }
 
     @Test
@@ -113,7 +113,7 @@ public class RpcHandlerTest {
                         Actions.REQUEST,
                         new String[]{"doesNotExist", "123", "O{\"numA\":7,\"numB\":3}"})
         );
-        Assert.assertEquals(TestUtil.replaceSeperators("P|REJ|doesNotExist|123+"), connectionMock.lastSentMessage);
+        Assert.assertEquals(TestUtil.formatMessage("P|REJ|doesNotExist|123+"), mockConnection.lastSentMessage);
     }
 
     @Test
@@ -139,7 +139,7 @@ public class RpcHandlerTest {
         ));
         Thread.sleep(20);
 
-        Assert.assertEquals(TestUtil.replaceSeperators("P|REQ|addTwo|1|O{\"numA\":3,\"numB\":8}+"), connectionMock.lastSentMessage);
+        Assert.assertEquals(TestUtil.formatMessage("P|REQ|addTwo|1|O{\"numA\":3,\"numB\":8}+"), mockConnection.lastSentMessage);
         Assert.assertTrue(rpcResponse[0].success());
         Assert.assertEquals(rpcResponse[0].getData(), (float) 11.0);
     }
@@ -159,7 +159,7 @@ public class RpcHandlerTest {
         }).start();
 
         Thread.sleep(20);
-        Assert.assertEquals(TestUtil.replaceSeperators("P|REQ|addTwo|1|O{\"numA\":3,\"numB\":8}+"), connectionMock.lastSentMessage);
+        Assert.assertEquals(TestUtil.formatMessage("P|REQ|addTwo|1|O{\"numA\":3,\"numB\":8}+"), mockConnection.lastSentMessage);
 
         rpcHandler.handle(new Message(
                 "raw",
@@ -170,7 +170,7 @@ public class RpcHandlerTest {
 
         Thread.sleep(20);
 
-        Assert.assertEquals(TestUtil.replaceSeperators("P|REQ|addTwo|1|O{\"numA\":3,\"numB\":8}+"), connectionMock.lastSentMessage);
+        Assert.assertEquals(TestUtil.formatMessage("P|REQ|addTwo|1|O{\"numA\":3,\"numB\":8}+"), mockConnection.lastSentMessage);
         Assert.assertFalse(rpcResponse[0].success());
         Assert.assertEquals(rpcResponse[0].getData(), "NO_PROVIDER");
     }
@@ -190,7 +190,7 @@ public class RpcHandlerTest {
         }).start();
 
         Thread.sleep(200);
-        Assert.assertEquals(TestUtil.replaceSeperators("P|REQ|addTwo|1|O{\"numA\":3,\"numB\":8}+"), connectionMock.lastSentMessage);
+        Assert.assertEquals(TestUtil.formatMessage("P|REQ|addTwo|1|O{\"numA\":3,\"numB\":8}+"), mockConnection.lastSentMessage);
         Thread.sleep(250);
 
         verify(this.errorCallbackMock, times(1)).onException(Topic.RPC, Event.ACK_TIMEOUT, "No ACK message received in time for REQUEST 1");
@@ -211,7 +211,7 @@ public class RpcHandlerTest {
         }).start();
 
         Thread.sleep(20);
-        Assert.assertEquals(TestUtil.replaceSeperators("P|REQ|addTwo|1|O{\"numA\":3,\"numB\":8}+"), connectionMock.lastSentMessage);
+        Assert.assertEquals(TestUtil.formatMessage("P|REQ|addTwo|1|O{\"numA\":3,\"numB\":8}+"), mockConnection.lastSentMessage);
 
         Thread.sleep(100);
         Assert.assertFalse(rpcResponse[0].success());

@@ -13,8 +13,8 @@ import static org.mockito.Mockito.*;
 
 public class EventHandlerTest {
 
-    DeepstreamClientMock deepstreamClientMock;
-    ConnectionMock connectionMock;
+    MockDeepstreamClient deepstreamClientMock;
+    MockConnection mockConnection;
     EventHandler eventHandler;
     EventListener callbackMock;
     DeepstreamRuntimeErrorHandler deepstreamRuntimeErrorHandler;
@@ -23,16 +23,16 @@ public class EventHandlerTest {
     public void setUp() throws URISyntaxException, InvalidDeepstreamConfig {
         callbackMock = mock(EventListener.class);
 
-        this.connectionMock = new ConnectionMock();
+        this.mockConnection = new MockConnection();
         this.deepstreamRuntimeErrorHandler = mock(DeepstreamRuntimeErrorHandler.class);
-        this.deepstreamClientMock = new DeepstreamClientMock();
+        this.deepstreamClientMock = new MockDeepstreamClient();
         this.deepstreamClientMock.setRuntimeErrorHandler(this.deepstreamRuntimeErrorHandler);
         this.deepstreamClientMock.setConnectionState(ConnectionState.OPEN);
 
         Properties options = new Properties();
         options.put("subscriptionTimeout", "10");
 
-        eventHandler = new EventHandler(new DeepstreamConfig(options), connectionMock, deepstreamClientMock);
+        eventHandler = new EventHandler(new DeepstreamConfig(options), mockConnection, deepstreamClientMock);
     }
 
     @After
@@ -42,15 +42,15 @@ public class EventHandlerTest {
 
     @Test
     public void emitsEventItHasNoListenersFor() {
-        Assert.assertNull(connectionMock.lastSentMessage);
+        Assert.assertNull(mockConnection.lastSentMessage);
         eventHandler.emit("myEvent", 8);
-        Assert.assertEquals(TestUtil.replaceSeperators("E|EVT|myEvent|N8+"), connectionMock.lastSentMessage);
+        Assert.assertEquals(TestUtil.formatMessage("E|EVT|myEvent|N8+"), mockConnection.lastSentMessage);
     }
 
     @Test
     public void subscribesToEvent() {
         eventHandler.subscribe("myEvent", callbackMock);
-        Assert.assertEquals(TestUtil.replaceSeperators("E|S|myEvent+"), connectionMock.lastSentMessage);
+        Assert.assertEquals(TestUtil.formatMessage("E|S|myEvent+"), mockConnection.lastSentMessage);
     }
 
     @Test

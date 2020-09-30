@@ -19,7 +19,7 @@ class JavaEndpointWebsocket implements Endpoint {
     private final Connection connection;
     private WebSocket websocket;
 
-    JavaEndpointWebsocket(URI uri, Connection connection) throws URISyntaxException {
+    JavaEndpointWebsocket(URI uri, Connection connection) {
         this.uri = uri;
         this.connection = connection;
     }
@@ -58,11 +58,7 @@ class JavaEndpointWebsocket implements Endpoint {
                     sslContext.init(null, null, null);
                     factory = sslContext.getSocketFactory();
                     this.setSocket(factory.createSocket());
-                } catch (NoSuchAlgorithmException e) {
-                    throw new RuntimeException(e);
-                } catch (KeyManagementException e) {
-                    throw new RuntimeException(e);
-                } catch (IOException e) {
+                } catch (NoSuchAlgorithmException | KeyManagementException | IOException e) {
                     throw new RuntimeException(e);
                 }
             }
@@ -82,7 +78,7 @@ class JavaEndpointWebsocket implements Endpoint {
         public void onClose(int code, String reason, boolean remote) {
             try {
                 connection.onClose();
-            } catch (Exception e) {
+            } catch (Exception ignored) {
             }
         }
 

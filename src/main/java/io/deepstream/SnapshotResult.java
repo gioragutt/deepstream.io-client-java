@@ -5,7 +5,7 @@ import com.google.gson.JsonElement;
 public class SnapshotResult {
 
     JsonElement data;
-    DeepstreamError error = null;
+    DeepstreamError error;
 
     SnapshotResult(JsonElement data, DeepstreamError error) {
         this.data = data;

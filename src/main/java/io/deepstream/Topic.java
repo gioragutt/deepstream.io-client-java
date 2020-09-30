@@ -2,8 +2,6 @@ package io.deepstream;
 
 import com.google.j2objc.annotations.ObjectiveCName;
 
-import java.util.EnumSet;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -41,12 +39,7 @@ public enum Topic {
      */
     PRESENCE("U");
 
-    private static final Map<String, Topic> lookup = new HashMap<String, Topic>();
-
-    static {
-        for (Topic s : EnumSet.allOf(Topic.class))
-            lookup.put(s.toString(), s);
-    }
+    private static final Map<String, Topic> LOOKUP = Utils.createEnumLookup(Topic.class);
 
     private final String topic;
 
@@ -57,11 +50,11 @@ public enum Topic {
 
     @ObjectiveCName("getTopic:")
     static Topic getTopic(String topic) {
-        return lookup.get(topic);
+        return LOOKUP.get(topic);
     }
 
     @Override
     public String toString() {
-        return this.topic;
+        return topic;
     }
 }

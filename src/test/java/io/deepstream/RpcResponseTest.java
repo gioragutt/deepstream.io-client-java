@@ -17,20 +17,20 @@ import static org.mockito.Mockito.mock;
 public class RpcResponseTest {
 
     DeepstreamClient deepstreamClientMock;
-    ConnectionMock connectionMock;
+    MockConnection mockConnection;
     RpcHandler rpcHandler;
 
     @Before
     public void setUp() throws URISyntaxException, InvalidDeepstreamConfig {
         this.deepstreamClientMock = mock(DeepstreamClient.class);
-        this.connectionMock = new ConnectionMock();
+        this.mockConnection = new MockConnection();
 
         Properties options = new Properties();
         options.put("subscriptionTimeout", "2000");
         options.put("rpcAckTimeout", "6000");
         options.put("rpcResponseTimeout", "10000");
 
-        this.rpcHandler = new RpcHandler(new DeepstreamConfig(options), connectionMock, deepstreamClientMock);
+        this.rpcHandler = new RpcHandler(new DeepstreamConfig(options), mockConnection, deepstreamClientMock);
     }
 
     @After
@@ -39,27 +39,27 @@ public class RpcResponseTest {
 
     @Test
     public void sendsAckMessageAutomatically() {
-        RpcResponse response = new RpcResponse(connectionMock, "addTwo", "123");
-        Assert.assertEquals(TestUtil.replaceSeperators("P|A|REQ|addTwo|123+"), connectionMock.lastSentMessage);
+        RpcResponse response = new RpcResponse(mockConnection, "addTwo", "123");
+        Assert.assertEquals(TestUtil.formatMessage("P|A|REQ|addTwo|123+"), mockConnection.lastSentMessage);
     }
 
     @Test
     public void sendsTheResponse() {
-        RpcResponse response = new RpcResponse(connectionMock, "addTwo", "123");
+        RpcResponse response = new RpcResponse(mockConnection, "addTwo", "123");
         response.send(14);
-        Assert.assertEquals(TestUtil.replaceSeperators("P|RES|addTwo|123|N14+"), connectionMock.lastSentMessage);
+        Assert.assertEquals(TestUtil.formatMessage("P|RES|addTwo|123|N14+"), mockConnection.lastSentMessage);
     }
 
     @Test
     public void rejectsTheMessage() {
-        RpcResponse response = new RpcResponse(connectionMock, "addTwo", "123");
+        RpcResponse response = new RpcResponse(mockConnection, "addTwo", "123");
         response.reject();
-        Assert.assertEquals(TestUtil.replaceSeperators("P|REJ|addTwo|123+"), connectionMock.lastSentMessage);
+        Assert.assertEquals(TestUtil.formatMessage("P|REJ|addTwo|123+"), mockConnection.lastSentMessage);
     }
 
     @Test
     public void throwsWhenSendingRejectedMessage() {
-        RpcResponse response = new RpcResponse(connectionMock, "addTwo", "123");
+        RpcResponse response = new RpcResponse(mockConnection, "addTwo", "123");
         response.reject();
         try {
             response.send("bla");
@@ -70,14 +70,14 @@ public class RpcResponseTest {
 
     @Test
     public void errorsTheMessage() {
-        RpcResponse response = new RpcResponse(connectionMock, "addTwo", "123");
+        RpcResponse response = new RpcResponse(mockConnection, "addTwo", "123");
         response.error("Error Message");
-        Assert.assertEquals(TestUtil.replaceSeperators("P|E|Error Message|addTwo|123+"), connectionMock.lastSentMessage);
+        Assert.assertEquals(TestUtil.formatMessage("P|E|Error Message|addTwo|123+"), mockConnection.lastSentMessage);
     }
 
     @Test
     public void throwsWhenSendingErroredMessage() {
-        RpcResponse response = new RpcResponse(connectionMock, "addTwo", "123");
+        RpcResponse response = new RpcResponse(mockConnection, "addTwo", "123");
         response.error("Err msg");
         try {
             response.send("bla");

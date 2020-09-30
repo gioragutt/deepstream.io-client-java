@@ -12,8 +12,8 @@ import static org.mockito.Mockito.*;
 
 public class ListTest {
 
-    DeepstreamClientMock deepstreamClientMock;
-    ConnectionMock connectionMock;
+    MockDeepstreamClient deepstreamClientMock;
+    MockConnection mockConnection;
     RecordHandler recordHandler;
     DeepstreamRuntimeErrorHandler errorCallbackMock;
     List list;
@@ -24,9 +24,9 @@ public class ListTest {
     @Before
     public void setUp() throws InvalidDeepstreamConfig {
 
-        this.connectionMock = new ConnectionMock();
+        this.mockConnection = new MockConnection();
         this.errorCallbackMock = mock(DeepstreamRuntimeErrorHandler.class);
-        this.deepstreamClientMock = new DeepstreamClientMock();
+        this.deepstreamClientMock = new MockDeepstreamClient();
         this.deepstreamClientMock.setRuntimeErrorHandler(errorCallbackMock);
         this.deepstreamClientMock.setConnectionState(ConnectionState.OPEN);
 
@@ -36,7 +36,7 @@ public class ListTest {
         options.put("recordReadAckTimeout", "10");
         options.put("recordReadTimeout", "20");
 
-        recordHandler = new RecordHandler(new DeepstreamConfig(options), connectionMock, deepstreamClientMock);
+        recordHandler = new RecordHandler(new DeepstreamConfig(options), mockConnection, deepstreamClientMock);
         recordEventsListener = mock(RecordEventsListener.class);
         listChangedListener = mock(ListChangedListener.class);
 
@@ -51,7 +51,7 @@ public class ListTest {
 
         try {
             Thread.sleep(50);
-            recordHandler.handle(MessageParser.parseMessage(TestUtil.replaceSeperators("R|R|someList|1|[\"entryA\",\"entryB\"]"), deepstreamClientMock));
+            recordHandler.handle(MessageParser.parseMessage(TestUtil.formatMessage("R|R|someList|1|[\"entryA\",\"entryB\"]"), deepstreamClientMock));
             Thread.sleep(50);
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -86,7 +86,7 @@ public class ListTest {
         Assert.assertArrayEquals(list.getEntries(), content);
         verify(listChangedListener, times(1)).onListChanged(listName, content);
 
-        Assert.assertEquals(connectionMock.lastSentMessage, TestUtil.replaceSeperators("R|U|someList|2|[\"entryA\",\"entryB\",\"entryC\"]+"));
+        Assert.assertEquals(mockConnection.lastSentMessage, TestUtil.formatMessage("R|U|someList|2|[\"entryA\",\"entryB\",\"entryC\"]+"));
     }
 
     @Test
@@ -102,7 +102,7 @@ public class ListTest {
         Assert.assertArrayEquals(content, list.getEntries());
         verify(listChangedListener, times(1)).onListChanged(listName, content);
 
-        Assert.assertEquals(connectionMock.lastSentMessage, TestUtil.replaceSeperators("R|U|someList|3|[\"entryA\",\"entryC\"]+"));
+        Assert.assertEquals(mockConnection.lastSentMessage, TestUtil.formatMessage("R|U|someList|3|[\"entryA\",\"entryC\"]+"));
     }
 
     @Test
@@ -117,7 +117,7 @@ public class ListTest {
         Assert.assertArrayEquals(content, list.getEntries());
         verify(listChangedListener, times(1)).onListChanged(listName, content);
 
-        Assert.assertEquals(connectionMock.lastSentMessage, TestUtil.replaceSeperators("R|U|someList|4|[\"entryA\",\"entryD\",\"entryC\"]+"));
+        Assert.assertEquals(mockConnection.lastSentMessage, TestUtil.formatMessage("R|U|someList|4|[\"entryA\",\"entryD\",\"entryC\"]+"));
     }
 
     @Test
@@ -133,7 +133,7 @@ public class ListTest {
         Assert.assertArrayEquals(content, list.getEntries());
         verify(listChangedListener, times(1)).onListChanged(listName, content);
 
-        Assert.assertEquals(connectionMock.lastSentMessage, TestUtil.replaceSeperators("R|U|someList|5|[\"entryA\",\"entryC\"]+"));
+        Assert.assertEquals(mockConnection.lastSentMessage, TestUtil.formatMessage("R|U|someList|5|[\"entryA\",\"entryC\"]+"));
     }
 
     @Test
@@ -148,7 +148,7 @@ public class ListTest {
         Assert.assertArrayEquals(content, list.getEntries());
         verify(listChangedListener, times(1)).onListChanged(listName, content);
 
-        Assert.assertEquals(connectionMock.lastSentMessage, TestUtil.replaceSeperators("R|U|someList|6|[\"u\",\"v\"]+"));
+        Assert.assertEquals(mockConnection.lastSentMessage, TestUtil.formatMessage("R|U|someList|6|[\"u\",\"v\"]+"));
     }
 
     @Test
@@ -159,7 +159,7 @@ public class ListTest {
 
         String[] content = {"x", "y"};
 
-        recordHandler.handle(MessageParser.parseMessage(TestUtil.replaceSeperators("R|R|someList|7|[\"x\",\"y\"]"), deepstreamClientMock));
+        recordHandler.handle(MessageParser.parseMessage(TestUtil.formatMessage("R|R|someList|7|[\"x\",\"y\"]"), deepstreamClientMock));
 
         Assert.assertArrayEquals(content, list.getEntries());
         verify(listChangedListener, times(1)).onListChanged(listName, content);
@@ -174,7 +174,7 @@ public class ListTest {
         String[] content = new String[]{};
         list.setEntries(content);
 
-        Assert.assertEquals(connectionMock.lastSentMessage, TestUtil.replaceSeperators("R|U|someList|8|[]+"));
+        Assert.assertEquals(mockConnection.lastSentMessage, TestUtil.formatMessage("R|U|someList|8|[]+"));
         verify(listChangedListener, times(1)).onListChanged(listName, content);
         Assert.assertTrue(list.isEmpty());
     }
@@ -191,7 +191,7 @@ public class ListTest {
         list.setEntries(content);
 
         verify(listChangedListener, times(0)).onListChanged(listName, content);
-        Assert.assertEquals(connectionMock.lastSentMessage, TestUtil.replaceSeperators("R|U|someList|8|[]+"));
+        Assert.assertEquals(mockConnection.lastSentMessage, TestUtil.formatMessage("R|U|someList|8|[]+"));
     }
 
 }

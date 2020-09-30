@@ -3,7 +3,7 @@ package io.deepstream;
 public class HasResult {
 
     boolean exists;
-    DeepstreamError error = null;
+    DeepstreamError error;
 
     HasResult(boolean exists, DeepstreamError error) {
         this.exists = exists;

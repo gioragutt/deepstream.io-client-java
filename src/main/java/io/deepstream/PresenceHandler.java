@@ -3,33 +3,35 @@ package io.deepstream;
 
 import com.google.j2objc.annotations.ObjectiveCName;
 
-import java.util.concurrent.CountDownLatch;
-
 public class PresenceHandler {
+    private static final String EVENT_NAME = Topic.PRESENCE.toString();
+    private static final String[] SUBSCRIBE_PAYLOAD = {Actions.SUBSCRIBE.toString()};
 
+    private final EventEmitter<PresenceEventListener> emitter = new EventEmitter<>();
     private final int subscriptionTimeout;
-    private final UtilEmitter emitter;
-    private final DeepstreamConfig deepstreamConfig;
     private final IConnection connection;
-    private final DeepstreamClientAbstract client;
-    private final UtilAckTimeoutRegistry ackTimeoutRegistry;
-    private final UtilSingleNotifier notifier;
+    private final AbstractDeepstreamClient client;
+    private final AckTimeoutRegistry ackTimeoutRegistry;
+    private final SingleNotifier notifier;
 
-    PresenceHandler(DeepstreamConfig deepstreamConfig, final IConnection connection, DeepstreamClientAbstract client) {
+    PresenceHandler(DeepstreamConfig deepstreamConfig,
+                    IConnection connection,
+                    AbstractDeepstreamClient client) {
         this.subscriptionTimeout = deepstreamConfig.getSubscriptionTimeout();
         this.connection = connection;
         this.client = client;
-        this.emitter = new UtilEmitter();
-        this.deepstreamConfig = deepstreamConfig;
         this.ackTimeoutRegistry = client.getAckTimeoutRegistry();
-        this.notifier = new UtilSingleNotifier(client, connection, Topic.PRESENCE, Actions.QUERY, subscriptionTimeout);
 
-        new UtilResubscribeNotifier(this.client, new UtilResubscribeNotifier.UtilResubscribeListener() {
-            @Override
-            public void resubscribe() {
-                if (emitter.listeners(Topic.PRESENCE.toString()).size() != 0) {
-                    connection.sendMsg(Topic.PRESENCE, Actions.SUBSCRIBE, new String[]{Actions.SUBSCRIBE.toString()});
-                }
+        notifier = new SingleNotifier(
+                client,
+                connection,
+                Topic.PRESENCE,
+                Actions.QUERY,
+                subscriptionTimeout);
+
+        new ResubscribeNotifier(this.client, () -> {
+            if (!emitter.listeners(EVENT_NAME).isEmpty()) {
+                connection.sendMsg(Topic.PRESENCE, Actions.SUBSCRIBE, SUBSCRIBE_PAYLOAD);
             }
         });
     }
@@ -42,35 +44,14 @@ public class PresenceHandler {
      */
     public String[] getAll() throws DeepstreamError {
 
-        final Object[] data = new Object[1];
-        final DeepstreamError[] deepstreamException = new DeepstreamError[1];
+        SingleNotifier.CommonRequestCallback<String[]> callback =
+                new SingleNotifier.CommonRequestCallback<>();
 
-        final CountDownLatch snapshotLatch = new CountDownLatch(1);
+        notifier.request(Actions.QUERY.toString(), callback);
 
-        notifier.request(Actions.QUERY.toString(), new UtilSingleNotifier.UtilSingleNotifierCallback() {
-            @Override
-            public void onSingleNotifierError(String name, DeepstreamError error) {
-                deepstreamException[0] = error;
-                snapshotLatch.countDown();
-            }
-
-            @Override
-            public void onSingleNotifierResponse(String name, Object users) {
-                data[0] = users;
-                snapshotLatch.countDown();
-            }
-        });
-
-        try {
-            snapshotLatch.await();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        if (deepstreamException[0] != null) {
-            throw deepstreamException[0];
-        }
-        return (String[]) data[0];
+        callback.waitForResponse();
+        callback.throwIfError();
+        return callback.data();
     }
 
     /**
@@ -81,11 +62,11 @@ public class PresenceHandler {
      */
     @ObjectiveCName("subscribe:")
     public void subscribe(PresenceEventListener eventListener) {
-        if (this.emitter.hasListeners(Topic.PRESENCE.toString())) {
+        if (this.emitter.hasListeners(EVENT_NAME)) {
             this.ackTimeoutRegistry.add(Topic.PRESENCE, Actions.SUBSCRIBE, Topic.PRESENCE.toString(), this.subscriptionTimeout);
             this.connection.send(MessageBuilder.getMsg(Topic.PRESENCE, Actions.SUBSCRIBE, Actions.SUBSCRIBE.toString()));
         }
-        this.emitter.on(Topic.PRESENCE, eventListener);
+        this.emitter.on(EVENT_NAME, eventListener);
     }
 
     /**
@@ -96,8 +77,8 @@ public class PresenceHandler {
      */
     @ObjectiveCName("unsubscribe:")
     public void unsubscribe(PresenceEventListener eventListener) {
-        this.emitter.off(Topic.PRESENCE.toString(), eventListener);
-        if (this.emitter.hasListeners(Topic.PRESENCE.toString())) {
+        this.emitter.off(EVENT_NAME, eventListener);
+        if (this.emitter.hasListeners(EVENT_NAME)) {
             this.ackTimeoutRegistry.add(Topic.PRESENCE, Actions.UNSUBSCRIBE, Topic.PRESENCE.toString(), this.subscriptionTimeout);
             this.connection.send(MessageBuilder.getMsg(Topic.PRESENCE, Actions.UNSUBSCRIBE, Actions.UNSUBSCRIBE.toString()));
         }
@@ -108,28 +89,34 @@ public class PresenceHandler {
         if (message.action == Actions.ERROR && message.data[0].equals(Event.MESSAGE_DENIED.toString())) {
             this.ackTimeoutRegistry.clear(message);
             this.client.onError(Topic.PRESENCE, Event.MESSAGE_DENIED, message.data[1]);
-        } else if (message.action == Actions.ACK) {
-            this.ackTimeoutRegistry.clear(message);
-        } else if (message.action == Actions.PRESENCE_JOIN) {
-            this.broadcastEvent(Topic.PRESENCE.toString(), message.data[0], true);
-        } else if (message.action == Actions.PRESENCE_LEAVE) {
-            this.broadcastEvent(Topic.PRESENCE.toString(), message.data[0], false);
-        } else if (message.action == Actions.QUERY) {
-            this.notifier.receive(Actions.QUERY.toString(), null, message.data);
-        } else {
-            this.client.onError(Topic.PRESENCE, Event.UNSOLICITED_MESSAGE, message.action.toString());
+            return;
+        }
+
+        switch (message.action) {
+            case ACK:
+                this.ackTimeoutRegistry.clear(message);
+                break;
+            case PRESENCE_JOIN:
+                this.broadcastEvent(true, message.data[0]);
+                break;
+            case PRESENCE_LEAVE:
+                this.broadcastEvent(false, message.data[0]);
+                break;
+            case QUERY:
+                this.notifier.receive(Actions.QUERY.toString(), null, message.data);
+                break;
+            default:
+                this.client.onError(Topic.PRESENCE, Event.UNSOLICITED_MESSAGE, message.action.toString());
+                break;
         }
     }
 
-    private void broadcastEvent(String eventName, Object... args) {
-        java.util.List<Object> listeners = this.emitter.listeners(eventName);
-        for (Object listener : listeners) {
-            if (args != null) {
-                if ((Boolean) args[1])
-                    ((PresenceEventListener) listener).onClientLogin((String) args[0]);
-                else
-                    ((PresenceEventListener) listener).onClientLogout((String) args[0]);
-            }
+    private void broadcastEvent(boolean isLoginEvent, String data) {
+        for (PresenceEventListener listener : emitter.listeners(EVENT_NAME)) {
+            if (isLoginEvent)
+                listener.onClientLogin(data);
+            else
+                listener.onClientLogout(data);
         }
     }
 }

@@ -8,6 +8,7 @@ import com.google.j2objc.annotations.ObjectiveCName;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.ReentrantLock;
@@ -21,14 +22,14 @@ public class RecordHandler {
 
     private final DeepstreamConfig deepstreamConfig;
     private final IConnection connection;
-    private final DeepstreamClientAbstract client;
+    private final AbstractDeepstreamClient client;
     private final ConcurrentHashMap<String, Record> records;
     private final Map<String, List> lists;
-    private final UtilSingleNotifier hasRegistry;
-    private final UtilSingleNotifier snapshotRegistry;
-    private final ConcurrentHashMap<String, UtilListener> listeners;
+    private final SingleNotifier hasRegistry;
+    private final SingleNotifier snapshotRegistry;
+    private final ConcurrentHashMap<String, Listener> listeners;
     private final RecordHandlerListeners recordHandlerListeners;
-    private final UtilSingleNotifier recordSetNotifier;
+    private final SingleNotifier recordSetNotifier;
     private final ReentrantLock recordsLock;
 
     /**
@@ -40,7 +41,7 @@ public class RecordHandler {
      * @param client           The deepstream client
      */
     @ObjectiveCName("init:connection:client:")
-    RecordHandler(DeepstreamConfig deepstreamConfig, IConnection connection, DeepstreamClientAbstract client) {
+    RecordHandler(DeepstreamConfig deepstreamConfig, IConnection connection, AbstractDeepstreamClient client) {
         this.deepstreamConfig = deepstreamConfig;
         this.connection = connection;
         this.client = client;
@@ -49,11 +50,11 @@ public class RecordHandler {
 
         records = new ConcurrentHashMap<String, Record>();
         lists = new HashMap<String, List>();
-        listeners = new ConcurrentHashMap<String, UtilListener>();
+        listeners = new ConcurrentHashMap<String, Listener>();
 
-        hasRegistry = new UtilSingleNotifier(client, connection, Topic.RECORD, Actions.HAS, deepstreamConfig.getRecordReadTimeout());
-        snapshotRegistry = new UtilSingleNotifier(client, connection, Topic.RECORD, Actions.SNAPSHOT, deepstreamConfig.getRecordReadTimeout());
-        recordSetNotifier = new UtilSingleNotifier(client, connection, Topic.RECORD, Actions.PATCH, deepstreamConfig.getSubscriptionTimeout());
+        hasRegistry = new SingleNotifier(client, connection, Topic.RECORD, Actions.HAS, deepstreamConfig.getRecordReadTimeout());
+        snapshotRegistry = new SingleNotifier(client, connection, Topic.RECORD, Actions.SNAPSHOT, deepstreamConfig.getRecordReadTimeout());
+        recordSetNotifier = new SingleNotifier(client, connection, Topic.RECORD, Actions.PATCH, deepstreamConfig.getSubscriptionTimeout());
     }
 
     /**
@@ -93,12 +94,7 @@ public class RecordHandler {
 
         if (!record.isReady()) {
             final CountDownLatch readyLatch = new CountDownLatch(1);
-            record.whenReady(new Record.RecordReadyListener() {
-                @Override
-                public void onRecordReady(String recordName, Record record) {
-                    readyLatch.countDown();
-                }
-            });
+            record.whenReady((recordName, record1) -> readyLatch.countDown());
             try {
                 readyLatch.await();
             } catch (InterruptedException e) {
@@ -110,7 +106,7 @@ public class RecordHandler {
     }
 
     Record createRecord(String name) {
-        Record record = new Record(name, new HashMap(), connection, deepstreamConfig, client);
+        Record record = new Record(name, new HashMap<>(), connection, deepstreamConfig, client);
         record.addRecordEventsListener(recordHandlerListeners);
         record.addRecordDestroyPendingListener(recordHandlerListeners);
         record.getAndIncrementUsage();
@@ -128,12 +124,7 @@ public class RecordHandler {
     @ObjectiveCName("getList:")
     public List getList(String name) {
         synchronized (lists) {
-            List list = lists.get(name);
-            if (list == null) {
-                list = new List(this, name);
-                lists.put(name, list);
-            }
-            return list;
+            return lists.computeIfAbsent(name, (String ignored) -> new List(this, name));
         }
     }
 
@@ -169,11 +160,19 @@ public class RecordHandler {
         synchronized (listeners) {
             if (listeners.containsKey(pattern)) {
                 client.onError(Topic.RECORD, Event.LISTENER_EXISTS, pattern);
-            } else {
-                UtilListener utilListener = new UtilListener(Topic.RECORD, pattern, listenCallback, deepstreamConfig, client, connection);
-                listeners.put(pattern, utilListener);
-                utilListener.start();
+                return;
             }
+
+            Listener utilListener = new Listener(
+                    Topic.RECORD,
+                    pattern,
+                    listenCallback,
+                    deepstreamConfig,
+                    client,
+                    connection);
+
+            listeners.put(pattern, utilListener);
+            utilListener.start();
         }
     }
 
@@ -184,7 +183,7 @@ public class RecordHandler {
      */
     @ObjectiveCName("unlisten:")
     public void unlisten(String pattern) {
-        UtilListener listener = listeners.remove(pattern);
+        Listener listener = listeners.remove(pattern);
         if (listener != null) {
             listener.destroy();
         } else {
@@ -201,40 +200,20 @@ public class RecordHandler {
      */
     @ObjectiveCName("snapshot:")
     public SnapshotResult snapshot(String name) {
-        final JsonElement[] data = new JsonElement[1];
-        final DeepstreamError[] deepstreamException = new DeepstreamError[1];
-
         final Record record = records.get(name);
 
         if (record != null && record.isReady()) {
-            data[0] = record.get();
-        } else {
-            final CountDownLatch snapshotLatch = new CountDownLatch(1);
-
-            snapshotRegistry.request(name, new UtilSingleNotifier.UtilSingleNotifierCallback() {
-                @Override
-                @ObjectiveCName("onSingleNotifierError:error:")
-                public void onSingleNotifierError(String name, DeepstreamError error) {
-                    deepstreamException[0] = error;
-                    snapshotLatch.countDown();
-                }
-
-                @Override
-                @ObjectiveCName("onSingleNotifierResponse:recordData:")
-                public void onSingleNotifierResponse(String name, Object recordData) {
-                    data[0] = (JsonElement) recordData;
-                    snapshotLatch.countDown();
-                }
-            });
-
-            try {
-                snapshotLatch.await();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            return new SnapshotResult(record.get(), null);
         }
 
-        return new SnapshotResult(data[0], deepstreamException[0]);
+        SingleNotifier.CommonRequestCallback<JsonElement> callback =
+                new SingleNotifier.CommonRequestCallback<>();
+
+        snapshotRegistry.request(name, callback);
+
+        callback.waitForResponse();
+
+        return new SnapshotResult(callback.data(), callback.error());
     }
 
     /**
@@ -359,9 +338,8 @@ public class RecordHandler {
         if (record != null) {
             if (path != null) {
                 return record.setWithAck(path, value);
-            } else {
-                return record.setWithAck(deepstreamConfig.getJsonParser().toJsonTree(value));
             }
+            return record.setWithAck(deepstreamConfig.getJsonParser().toJsonTree(value));
         }
         JsonElement element;
         if (value instanceof String) {
@@ -384,27 +362,22 @@ public class RecordHandler {
             data = new String[]{recordName, String.valueOf(version), path, MessageBuilder.typed(value), config.toString()};
         }
 
-        final RecordSetResult[] result = new RecordSetResult[1];
-        final CountDownLatch snapshotLatch = new CountDownLatch(1);
-        this.recordSetNotifier.request(String.valueOf(version), Actions.CREATEANDUPDATE, data, new UtilSingleNotifier.UtilSingleNotifierCallback() {
-            @Override
-            public void onSingleNotifierError(String name, DeepstreamError error) {
-                result[0] = new RecordSetResult(error.getMessage());
-                snapshotLatch.countDown();
-            }
+        SingleNotifier.CommonRequestCallback<Object> callback =
+                new SingleNotifier.CommonRequestCallback<>();
 
-            @Override
-            public void onSingleNotifierResponse(String name, Object data) {
-                result[0] = new RecordSetResult(null);
-                snapshotLatch.countDown();
-            }
-        });
-        try {
-            snapshotLatch.await();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        return result[0];
+        recordSetNotifier.request(
+                String.valueOf(version),
+                Actions.CREATEANDUPDATE,
+                data,
+                callback);
+
+        callback.waitForResponse();
+
+        String errorMessage = Optional.ofNullable(callback.error())
+                .map(Throwable::getMessage)
+                .orElse(null);
+
+        return new RecordSetResult(errorMessage);
     }
 
     /**
@@ -417,39 +390,19 @@ public class RecordHandler {
      */
     @ObjectiveCName("has:")
     public HasResult has(String name) {
-        final DeepstreamError[] deepstreamException = new DeepstreamError[1];
-        final boolean[] hasRecord = new boolean[1];
-
         Record record = records.get(name);
         if (record != null && record.isReady()) {
-            hasRecord[0] = true;
-        } else {
-            final CountDownLatch hasLatch = new CountDownLatch(1);
-
-            hasRegistry.request(name, new UtilSingleNotifier.UtilSingleNotifierCallback() {
-                @Override
-                @ObjectiveCName("onSingleNotifierError:error:")
-                public void onSingleNotifierError(String name, DeepstreamError error) {
-                    deepstreamException[0] = error;
-                    hasLatch.countDown();
-                }
-
-                @Override
-                @ObjectiveCName("onSingleNotifierResponse:data:")
-                public void onSingleNotifierResponse(String name, Object data) {
-                    hasRecord[0] = (Boolean) data;
-                    hasLatch.countDown();
-                }
-            });
-
-            try {
-                hasLatch.await();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            return new HasResult(true, null);
         }
 
-        return new HasResult(hasRecord[0], deepstreamException[0]);
+        SingleNotifier.CommonRequestCallback<Boolean> callback =
+                new SingleNotifier.CommonRequestCallback<>();
+
+        hasRegistry.request(name, callback);
+
+        callback.waitForResponse();
+
+        return new HasResult(callback.data(), callback.error());
     }
 
 
@@ -522,7 +475,7 @@ public class RecordHandler {
             }
         }
 
-        UtilListener listener = listeners.get(recordName);
+        Listener listener = listeners.get(recordName);
         if (listener != null) {
             processed = true;
             listener.onMessage(message);

@@ -1,11 +1,11 @@
 package io.deepstream;
 
-public class ConnectionMock implements IConnection {
+public class MockConnection implements IConnection {
 
     public String lastSentMessage;
     public ConnectionState state;
 
-    public ConnectionMock() {
+    public MockConnection() {
         this.lastSentMessage = null;
         this.state = ConnectionState.CLOSED;
     }

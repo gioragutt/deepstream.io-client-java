@@ -14,7 +14,7 @@ import java.util.concurrent.CountDownLatch;
  * {@link DeepstreamFactory#getClient()}, {@link DeepstreamFactory#getClient(String)} or
  * {@link DeepstreamFactory#getClient(String, Properties)} to create one for you and hold them for future reference.
  */
-public class DeepstreamClient extends DeepstreamClientAbstract {
+public class DeepstreamClient extends AbstractDeepstreamClient {
 
     /**
      * The getters for data-sync, such as {@link RecordHandler#getRecord(String)},
@@ -57,7 +57,7 @@ public class DeepstreamClient extends DeepstreamClientAbstract {
      * @throws URISyntaxException Thrown if the url in incorrect
      */
     @ObjectiveCName("init:options:")
-    public DeepstreamClient(final String url, Map options) throws URISyntaxException, InvalidDeepstreamConfig {
+    public DeepstreamClient(final String url, Map<?, ?> options) throws URISyntaxException, InvalidDeepstreamConfig {
         this(url, new DeepstreamConfig(options));
     }
 
@@ -79,7 +79,7 @@ public class DeepstreamClient extends DeepstreamClientAbstract {
      * @throws URISyntaxException Thrown if the url in incorrect
      */
     @ObjectiveCName("init:endpointFactory:")
-    public DeepstreamClient(final String url, EndpointFactory endpointFactory) throws URISyntaxException, InvalidDeepstreamConfig {
+    public DeepstreamClient(final String url, EndpointFactory endpointFactory) throws URISyntaxException {
         this(url, new DeepstreamConfig(), endpointFactory);
     }
 
@@ -98,12 +98,12 @@ public class DeepstreamClient extends DeepstreamClientAbstract {
     /**
      * deepstream.io java client
      *
-     * @param url             URL to connect to. The protocol can be omited, e.g. <host>:<port>
+     * @param url             URL to connect to. The protocol can be omitted, e.g. <host>:<port>
      * @param endpointFactory An EndpointFactory that returns an Endpoint
      * @throws URISyntaxException Thrown if the url in incorrect
      */
     @ObjectiveCName("init:properties:endpointFactory:")
-    public DeepstreamClient(final String url, Map options, EndpointFactory endpointFactory) throws URISyntaxException, InvalidDeepstreamConfig {
+    public DeepstreamClient(final String url, Map<?, ?> options, EndpointFactory endpointFactory) throws URISyntaxException, InvalidDeepstreamConfig {
         this(url, new DeepstreamConfig(options), endpointFactory);
     }
 
@@ -129,11 +129,12 @@ public class DeepstreamClient extends DeepstreamClientAbstract {
      */
     @ObjectiveCName("init:deepstreamConfig:endpointFactory:")
     public DeepstreamClient(final String url, DeepstreamConfig deepstreamConfig, EndpointFactory endpointFactory) throws URISyntaxException {
-        this.connection = new Connection(url, deepstreamConfig, this, endpointFactory);
-        this.event = new EventHandler(deepstreamConfig, this.connection, this);
-        this.rpc = new RpcHandler(deepstreamConfig, this.connection, this);
-        this.record = new RecordHandler(deepstreamConfig, this.connection, this);
-        this.presence = new PresenceHandler(deepstreamConfig, this.connection, this);
+        addConnectionChangeListener(getAckTimeoutRegistry());
+        connection = new Connection(url, deepstreamConfig, this, endpointFactory);
+        event = new EventHandler(deepstreamConfig, connection, this);
+        rpc = new RpcHandler(deepstreamConfig, connection, this);
+        record = new RecordHandler(deepstreamConfig, connection, this);
+        presence = new PresenceHandler(deepstreamConfig, connection, this);
     }
 
     /**
@@ -144,7 +145,7 @@ public class DeepstreamClient extends DeepstreamClientAbstract {
      * @return the {@link RecordHandler}
      */
     public RecordHandler getRecordHandler() {
-        return this.record;
+        return record;
     }
 
     /**
@@ -155,7 +156,7 @@ public class DeepstreamClient extends DeepstreamClientAbstract {
      * @return the {@link EventHandler}
      */
     public EventHandler getEventHandler() {
-        return this.event;
+        return event;
     }
 
     /**
@@ -163,7 +164,7 @@ public class DeepstreamClient extends DeepstreamClientAbstract {
      * providing them via {@link RpcHandler#provide(String, RpcRequestedListener)}
      */
     public RpcHandler getRpcHandler() {
-        return this.rpc;
+        return rpc;
     }
 
     /**
@@ -172,7 +173,7 @@ public class DeepstreamClient extends DeepstreamClientAbstract {
      * {@link PresenceHandler#unsubscribe(PresenceEventListener)}
      */
     public PresenceHandler getPresenceHandler() {
-        return this.presence;
+        return presence;
     }
 
     /**
@@ -183,7 +184,7 @@ public class DeepstreamClient extends DeepstreamClientAbstract {
      */
     @ObjectiveCName("setRuntimeErrorHandler:")
     public void setRuntimeErrorHandler(DeepstreamRuntimeErrorHandler deepstreamRuntimeErrorHandler) {
-        super.setRuntimeErrorHandler(deepstreamRuntimeErrorHandler);
+        setRuntimeErrorHandler(deepstreamRuntimeErrorHandler);
     }
 
     /**
@@ -194,7 +195,7 @@ public class DeepstreamClient extends DeepstreamClientAbstract {
      */
     @ObjectiveCName("login")
     public LoginResult login() {
-        return this.login(null);
+        return login(null);
     }
 
     /**
@@ -226,7 +227,7 @@ public class DeepstreamClient extends DeepstreamClientAbstract {
         final CountDownLatch loggedInLatch = new CountDownLatch(1);
         final LoginResult[] loginResult = new LoginResult[1];
 
-        this.connection.authenticate(authParams, new LoginCallback() {
+        connection.authenticate(authParams, new LoginCallback() {
             @Override
             @ObjectiveCName("loginSuccess:")
             public void loginSuccess(Object userData) {
@@ -245,7 +246,8 @@ public class DeepstreamClient extends DeepstreamClientAbstract {
         try {
             loggedInLatch.await();
         } catch (InterruptedException e) {
-            loginResult[0] = new LoginResult(false, null, "An issue occured during login");
+            loginResult[0] = new LoginResult(
+                    false, null, "An issue occurred during login");
         }
 
         return loginResult[0];
@@ -257,8 +259,8 @@ public class DeepstreamClient extends DeepstreamClientAbstract {
      * @return The deepstream client
      */
     public DeepstreamClient close() {
-        this.connection.close(false);
-        this.getAckTimeoutRegistry().close();
+        connection.close(false);
+        getAckTimeoutRegistry().close();
         return this;
     }
 
@@ -271,7 +273,7 @@ public class DeepstreamClient extends DeepstreamClientAbstract {
      */
     @ObjectiveCName("addConnectionChangedListener:")
     public DeepstreamClient addConnectionChangeListener(ConnectionStateListener connectionStateListener) {
-        this.connection.addConnectionChangeListener(connectionStateListener);
+        connection.addConnectionChangeListener(connectionStateListener);
         return this;
     }
 
@@ -283,7 +285,7 @@ public class DeepstreamClient extends DeepstreamClientAbstract {
      */
     @ObjectiveCName("removeConnectionChangedListener:")
     public DeepstreamClient removeConnectionChangeListener(ConnectionStateListener connectionStateListener) {
-        this.connection.removeConnectionChangeListener(connectionStateListener);
+        connection.removeConnectionChangeListener(connectionStateListener);
         return this;
     }
 
@@ -293,7 +295,7 @@ public class DeepstreamClient extends DeepstreamClientAbstract {
      * @return The connection state
      */
     public ConnectionState getConnectionState() {
-        return this.connection.getConnectionState();
+        return connection.getConnectionState();
     }
 
     /**
@@ -301,16 +303,16 @@ public class DeepstreamClient extends DeepstreamClientAbstract {
      * no reconnects will be attempted. If connectivity is set to {@link GlobalConnectivityState#CONNECTED)} and current {@link ConnectionState)} is {@link ConnectionState#CLOSED)}
      * or {@link ConnectionState#ERROR)} then client will try reconnecting.
      *
-     * @param {GlobalConnectivityState} globalConnectivityState Current global connectivity state
+     * @param globalConnectivityState Current global connectivity state
      */
     public void setGlobalConnectivityState(GlobalConnectivityState globalConnectivityState) {
-        this.connection.setGlobalConnectivityState(globalConnectivityState);
+        connection.setGlobalConnectivityState(globalConnectivityState);
     }
 
     /**
      * Returns a random string. The first block of characters
      * is a timestamp, in order to allow databases to optimize for semi-
-     * sequentuel numberings
+     * sequential numberings
      *
      * @return A unique id
      */

@@ -13,10 +13,10 @@ import java.util.concurrent.CountDownLatch;
 public class RpcHandler {
     private final DeepstreamConfig deepstreamConfig;
     private final IConnection connection;
-    private final DeepstreamClientAbstract client;
-    private final Map<String, RpcRequestedListener> providers;
-    private final UtilAckTimeoutRegistry ackTimeoutRegistry;
-    private final Map<String, Rpc> rpcs;
+    private final AbstractDeepstreamClient client;
+    private final Map<String, RpcRequestedListener> providers = new HashMap<>();
+    private final AckTimeoutRegistry ackTimeoutRegistry;
+    private final Map<String, Rpc> rpcs = new HashMap<>();
 
     /**
      * The main class for remote procedure calls
@@ -29,19 +29,14 @@ public class RpcHandler {
      * @param client           The deepstream client
      */
     @ObjectiveCName("init:connection:client:")
-    RpcHandler(DeepstreamConfig deepstreamConfig, final IConnection connection, DeepstreamClientAbstract client) {
+    RpcHandler(DeepstreamConfig deepstreamConfig, final IConnection connection, AbstractDeepstreamClient client) {
         this.deepstreamConfig = deepstreamConfig;
         this.connection = connection;
         this.client = client;
-        this.providers = new HashMap<String, RpcRequestedListener>();
-        this.rpcs = new HashMap<String, Rpc>();
         this.ackTimeoutRegistry = client.getAckTimeoutRegistry();
-        new UtilResubscribeNotifier(this.client, new UtilResubscribeNotifier.UtilResubscribeListener() {
-            @Override
-            public void resubscribe() {
-                for (String rpcName : providers.keySet()) {
-                    sendRPCSubscribe(rpcName);
-                }
+        new ResubscribeNotifier(this.client, () -> {
+            for (String rpcName : providers.keySet()) {
+                sendRPCSubscribe(rpcName);
             }
         });
     }
@@ -61,13 +56,13 @@ public class RpcHandler {
      */
     @ObjectiveCName("provide:rpcRequestedListener:")
     public void provide(String rpcName, RpcRequestedListener rpcRequestedListener) {
-        if (this.providers.containsKey(rpcName)) {
+        if (providers.containsKey(rpcName)) {
             throw new DeepstreamException("RPC " + rpcName + " already registered");
         }
 
         synchronized (this) {
-            this.providers.put(rpcName, rpcRequestedListener);
-            this.sendRPCSubscribe(rpcName);
+            providers.put(rpcName, rpcRequestedListener);
+            sendRPCSubscribe(rpcName);
         }
     }
 
@@ -99,10 +94,9 @@ public class RpcHandler {
         final RpcResult[] rpcResponse = new RpcResult[1];
         final CountDownLatch responseLatch = new CountDownLatch(1);
 
-
         synchronized (this) {
-            String uid = this.client.getUid();
-            this.rpcs.put(uid, new Rpc(this.deepstreamConfig, this.client, rpcName, uid, new RpcResponseCallback() {
+            String uid = client.getUid();
+            rpcs.put(uid, new Rpc(deepstreamConfig, client, rpcName, uid, new RpcResponseCallback() {
                 @Override
                 public void onRpcSuccess(String rpcName, Object data) {
                     rpcResponse[0] = new RpcResult(true, data);
@@ -146,17 +140,15 @@ public class RpcHandler {
             this.respondToRpc(message);
             return;
         }
+
         // RPC subscription Acks
-        if (message.action == Actions.ACK &&
-                (message.data[0].equals(Actions.SUBSCRIBE.toString()) || message.data[0].equals(Actions.UNSUBSCRIBE.toString()))) {
+        if (isRpcSubscriptionAck(message)) {
             this.ackTimeoutRegistry.clear(message);
             return;
         }
 
-        /*
-         * Error messages always have the error as first parameter. So the
-         * order is different to ack and response messages
-         */
+        // Error messages always have the error as first parameter.
+        // So the order is different to ack and response messages
         if (message.action == Actions.ERROR || message.action == Actions.ACK) {
             rpcName = message.data[1];
             correlationId = message.data[2];
@@ -165,10 +157,8 @@ public class RpcHandler {
             correlationId = message.data[1];
         }
 
-        /*
-         * Retrieve the rpc object
-         */
-        rpc = this.getRpc(correlationId, message.raw);
+        // Retrieve the rpc object
+        rpc = getRpc(correlationId, message.raw);
         if (rpc == null) {
             return;
         }
@@ -178,11 +168,17 @@ public class RpcHandler {
             rpc.ack();
         } else if (message.action == Actions.RESPONSE) {
             rpc.respond(rpcName, message.data[2]);
-            this.rpcs.remove(correlationId);
+            rpcs.remove(correlationId);
         } else if (message.action == Actions.ERROR) {
             rpc.error(rpcName, message.data[0]);
-            this.rpcs.remove(correlationId);
+            rpcs.remove(correlationId);
         }
+    }
+
+    private static boolean isRpcSubscriptionAck(Message message) {
+        return message.action == Actions.ACK &&
+                (message.data[0].equals(Actions.SUBSCRIBE.toString()) ||
+                        message.data[0].equals(Actions.UNSUBSCRIBE.toString()));
     }
 
     /**
@@ -191,10 +187,10 @@ public class RpcHandler {
      */
     @ObjectiveCName("getRpc:raw:")
     private Rpc getRpc(String correlationId, String raw) {
-        Rpc rpc = this.rpcs.get(correlationId);
+        Rpc rpc = rpcs.get(correlationId);
 
         if (rpc == null) {
-            this.client.onError(Topic.RPC, Event.UNSOLICITED_MESSAGE, raw);
+            client.onError(Topic.RPC, Event.UNSOLICITED_MESSAGE, raw);
         }
 
         return rpc;
@@ -214,12 +210,12 @@ public class RpcHandler {
         Object data = null;
 
         if (message.data[2] != null) {
-            data = MessageParser.convertTyped(message.data[2], this.client, deepstreamConfig.getJsonParser());
+            data = MessageParser.convertTyped(message.data[2], client, deepstreamConfig.getJsonParser());
         }
 
         RpcRequestedListener callback = this.providers.get(rpcName);
         if (callback != null) {
-            response = new RpcResponse(this.connection, rpcName, correlationId);
+            response = new RpcResponse(connection, rpcName, correlationId);
             callback.onRPCRequested(rpcName, data, response);
         } else {
             this.connection.sendMsg(Topic.RPC, Actions.REJECTION, new String[]{rpcName, correlationId});
@@ -231,9 +227,9 @@ public class RpcHandler {
      */
     @ObjectiveCName("sendRPCSubscribe:")
     private void sendRPCSubscribe(String rpcName) {
-        if (this.client.getConnectionState() == ConnectionState.OPEN) {
-            this.ackTimeoutRegistry.add(Topic.RPC, Actions.SUBSCRIBE, rpcName, deepstreamConfig.getSubscriptionTimeout());
-            this.connection.sendMsg(Topic.RPC, Actions.SUBSCRIBE, new String[]{rpcName});
+        if (client.getConnectionState() == ConnectionState.OPEN) {
+            ackTimeoutRegistry.add(Topic.RPC, Actions.SUBSCRIBE, rpcName, deepstreamConfig.getSubscriptionTimeout());
+            connection.sendMsg(Topic.RPC, Actions.SUBSCRIBE, new String[]{rpcName});
         }
     }
 
