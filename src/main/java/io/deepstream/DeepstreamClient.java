@@ -38,7 +38,7 @@ public class DeepstreamClient extends AbstractDeepstreamClient {
      * {@link PresenceHandler#unsubscribe(PresenceEventListener)}
      */
     public final PresenceHandler presence;
-    private final Connection connection;
+    private final WebSocketConnection connection;
 
     /**
      * deepstream.io javascript client, defaults to using default properties
@@ -130,7 +130,7 @@ public class DeepstreamClient extends AbstractDeepstreamClient {
     @ObjectiveCName("init:deepstreamConfig:endpointFactory:")
     public DeepstreamClient(final String url, DeepstreamConfig deepstreamConfig, EndpointFactory endpointFactory) throws URISyntaxException {
         addConnectionChangeListener(getAckTimeoutRegistry());
-        connection = new Connection(url, deepstreamConfig, this, endpointFactory);
+        connection = new WebSocketConnection(url, deepstreamConfig, this, endpointFactory);
         event = new EventHandler(deepstreamConfig, connection, this);
         rpc = new RpcHandler(deepstreamConfig, connection, this);
         record = new RecordHandler(deepstreamConfig, connection, this);

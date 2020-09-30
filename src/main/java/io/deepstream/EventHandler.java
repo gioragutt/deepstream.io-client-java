@@ -18,11 +18,11 @@ public class EventHandler {
 
     private final int subscriptionTimeout;
     private final DeepstreamConfig deepstreamConfig;
-    private final IConnection connection;
+    private final Connection connection;
     private final AbstractDeepstreamClient client;
     private final AckTimeoutRegistry ackTimeoutRegistry;
 
-    EventHandler(DeepstreamConfig deepstreamConfig, final IConnection connection, AbstractDeepstreamClient client) {
+    EventHandler(DeepstreamConfig deepstreamConfig, final Connection connection, AbstractDeepstreamClient client) {
         this.subscriptionTimeout = deepstreamConfig.getSubscriptionTimeout();
         this.connection = connection;
         this.client = client;

@@ -11,21 +11,13 @@ import static org.mockito.Mockito.*;
 
 public class PresenceHandlerTest {
 
-    MockDeepstreamClient deepstreamClientMock;
-    MockConnection mockConnection;
+    MockDeepstreamClient deepstreamClientMock = TestUtil.createMockDeepstreamClient();
+    MockConnection mockConnection = new MockConnection();
     PresenceHandler presenceHandler;
-    PresenceEventListener presenceCallback;
-    DeepstreamRuntimeErrorHandler deepstreamRuntimeErrorHandler;
+    PresenceEventListener presenceCallback = mock(PresenceEventListener.class);
 
     @Before
     public void setUp() throws InvalidDeepstreamConfig {
-        presenceCallback = mock(PresenceEventListener.class);
-        mockConnection = new MockConnection();
-        deepstreamRuntimeErrorHandler = mock(DeepstreamRuntimeErrorHandler.class);
-        deepstreamClientMock = new MockDeepstreamClient();
-        deepstreamClientMock.setRuntimeErrorHandler(this.deepstreamRuntimeErrorHandler);
-        deepstreamClientMock.setConnectionState(ConnectionState.OPEN);
-
         Properties options = new Properties();
         options.put("subscriptionTimeout", "1000");
 
@@ -47,7 +39,7 @@ public class PresenceHandlerTest {
 
         String[] clients = presenceHandler.getAll();
 
-        Assert.assertEquals(TestUtil.formatMessage("U|Q|Q+"), mockConnection.lastSentMessage);
+        TestUtil.assertLastMessageWas(mockConnection, "U|Q|Q+");
         Assert.assertArrayEquals(new String[]{}, clients);
     }
 
@@ -61,7 +53,7 @@ public class PresenceHandlerTest {
 
         String[] clients = presenceHandler.getAll();
 
-        Assert.assertEquals(TestUtil.formatMessage("U|Q|Q+"), mockConnection.lastSentMessage);
+        TestUtil.assertLastMessageWas(mockConnection, "U|Q|Q+");
         String[] expectedClients = new String[]{"Bart", "Homer"};
         Assert.assertArrayEquals(expectedClients, clients);
     }
@@ -69,7 +61,7 @@ public class PresenceHandlerTest {
     @Test
     public void subscribesToLoginsAndIsAlertedWhenClientLogsIn() {
         presenceHandler.subscribe(presenceCallback);
-        Assert.assertEquals(TestUtil.formatMessage("U|S|S+"), mockConnection.lastSentMessage);
+        TestUtil.assertLastMessageWas(mockConnection, "U|S|S+");
 
         presenceHandler.handle(new Message(
                 "raw",
@@ -83,7 +75,7 @@ public class PresenceHandlerTest {
     @Test
     public void unsubscribesToLoginsAndIsNotAlertedWhenClientLogsIn() {
         presenceHandler.unsubscribe(presenceCallback);
-        Assert.assertEquals(TestUtil.formatMessage("U|US|US+"), mockConnection.lastSentMessage);
+        TestUtil.assertLastMessageWas(mockConnection, "U|US|US+");
 
         presenceHandler.handle(new Message(
                 "raw",

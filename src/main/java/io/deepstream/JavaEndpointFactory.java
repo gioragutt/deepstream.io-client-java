@@ -5,7 +5,7 @@ import java.net.URI;
 class JavaEndpointFactory implements EndpointFactory {
 
     @Override
-    public Endpoint createEndpoint(URI uri, Connection connection) {
+    public Endpoint createEndpoint(URI uri, WebSocketConnection connection) {
         return new JavaEndpointWebsocket(uri, connection);
     }
 }

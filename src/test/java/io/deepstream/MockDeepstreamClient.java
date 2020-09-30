@@ -6,8 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class MockDeepstreamClient extends AbstractDeepstreamClient {
-
-    // Do nothing
+    
     private final ArrayList<ConnectionStateListener> connectionListeners = new ArrayList<>();
     private ConnectionState connectionState;
 

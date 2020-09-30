@@ -14,7 +14,7 @@ class SingleNotifier implements ResubscribeNotifier.ResubscribeListener, Timeout
     private final Topic topic;
     private final Actions action;
     private final int timeoutDuration;
-    private final IConnection connection;
+    private final Connection connection;
     private final Map<String, ArrayList<SingleNotifierCallback>> requests;
     private final AckTimeoutRegistry ackTimeoutRegistry;
     private final ResubscribeNotifier resubscribeNotifier;
@@ -32,7 +32,7 @@ class SingleNotifier implements ResubscribeNotifier.ResubscribeListener, Timeout
      * @param timeoutDuration The timeout duration before an ack timeout is triggered
      */
     @ObjectiveCName("init:connection:topic:action:timeoutDuration:")
-    public SingleNotifier(AbstractDeepstreamClient client, IConnection connection, Topic topic, Actions action, int timeoutDuration) {
+    public SingleNotifier(AbstractDeepstreamClient client, Connection connection, Topic topic, Actions action, int timeoutDuration) {
         this.ackTimeoutRegistry = client.getAckTimeoutRegistry();
         this.connection = connection;
         this.topic = topic;

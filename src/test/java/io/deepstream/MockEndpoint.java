@@ -2,43 +2,35 @@ package io.deepstream;
 
 import java.util.ArrayList;
 
-public class EndpointMock implements Endpoint {
-
-    public static final String EVENT_OPEN = "open";
-    public static final String EVENT_MESSAGE = "message";
-    public static final String EVENT_ERROR = "error";
+public class MockEndpoint implements Endpoint {
     public String url;
     public String lastSentMessage;
-    public Boolean isDisconnected;
-    public ArrayList<String> sentMessages;
-    private Connection connection;
+    public ArrayList<String> sentMessages = new ArrayList<>();
+    private WebSocketConnection connection;
 
-    public EndpointMock(String url, Connection connection) {
+    public MockEndpoint(String url, WebSocketConnection connection) {
         this.connection = connection;
-        this.lastSentMessage = null;
         this.url = url;
-        this.isDisconnected = true;
-        this.sentMessages = new ArrayList<String>();
     }
 
-    public void setConnection(Connection connection) {
+    public void setConnection(WebSocketConnection connection) {
         this.connection = connection;
     }
 
     public void sendOpenEvent() {
-        this.connection.onOpen();
+        connection.onOpen();
     }
 
     public void sendMessage(String message) {
         try {
-            this.connection.onMessage(message);
+            connection.onMessage(message);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
     public void sendError(Exception exception) {
-        this.connection.onError(exception.getMessage());
+        connection.onError(exception.getMessage());
     }
 
     public void send(String message) {

@@ -12,7 +12,7 @@ import java.util.concurrent.CountDownLatch;
  */
 public class RpcHandler {
     private final DeepstreamConfig deepstreamConfig;
-    private final IConnection connection;
+    private final Connection connection;
     private final AbstractDeepstreamClient client;
     private final Map<String, RpcRequestedListener> providers = new HashMap<>();
     private final AckTimeoutRegistry ackTimeoutRegistry;
@@ -29,7 +29,7 @@ public class RpcHandler {
      * @param client           The deepstream client
      */
     @ObjectiveCName("init:connection:client:")
-    RpcHandler(DeepstreamConfig deepstreamConfig, final IConnection connection, AbstractDeepstreamClient client) {
+    RpcHandler(DeepstreamConfig deepstreamConfig, final Connection connection, AbstractDeepstreamClient client) {
         this.deepstreamConfig = deepstreamConfig;
         this.connection = connection;
         this.client = client;

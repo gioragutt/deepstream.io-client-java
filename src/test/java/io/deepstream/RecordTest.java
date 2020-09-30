@@ -16,47 +16,46 @@ import java.util.concurrent.TimeUnit;
 import static org.mockito.Mockito.*;
 
 public class RecordTest {
-    MockDeepstreamClient deepstreamClientMock;
-    MockConnection mockConnection;
-    RecordHandler recordHandler;
-    DeepstreamRuntimeErrorHandler errorCallbackMock;
+    private static final DeepstreamConfig CONFIG = createConfig();
+    private final DeepstreamRuntimeErrorHandler errorCallbackMock =
+            mock(DeepstreamRuntimeErrorHandler.class);
+    private final MockDeepstreamClient deepstreamClientMock =
+            TestUtil.createMockDeepstreamClient(errorCallbackMock);
+    private final RecordEventsListener recordEventsListener =
+            mock(RecordEventsListener.class);
+
+    private final MockConnection mockConnection = new MockConnection();
+
+    private final RecordHandler recordHandler =
+            new RecordHandler(CONFIG, mockConnection, deepstreamClientMock);
+
     Record record;
-    RecordEventsListener recordEventsListener;
-    Record.RecordReadyListener recordReadyListener;
-    DeepstreamConfig config;
 
     @Before
-    public void setUp() throws InvalidDeepstreamConfig, InterruptedException {
+    public void setUp() throws InterruptedException {
+        new Thread(() -> {
+            record = new Record("recordA", new HashMap<>(), mockConnection, CONFIG, deepstreamClientMock);
+            record.addRecordEventsListener(recordEventsListener);
+            record.start();
+        }).start();
 
-        this.mockConnection = new MockConnection();
-        this.errorCallbackMock = mock(DeepstreamRuntimeErrorHandler.class);
-        this.deepstreamClientMock = new MockDeepstreamClient();
-        this.deepstreamClientMock.setRuntimeErrorHandler(errorCallbackMock);
-        this.deepstreamClientMock.setConnectionState(ConnectionState.OPEN);
+        while (record == null) {
+            Thread.sleep(10);
+        }
+    }
 
+    private static DeepstreamConfig createConfig() {
         Properties options = new Properties();
         options.put("subscriptionTimeout", "50");
         options.put("recordDeleteTimeout", "50");
         options.put("recordReadAckTimeout", "50");
         options.put("recordReadTimeout", "200");
-        config = new DeepstreamConfig(options);
 
-        recordHandler = new RecordHandler(config, mockConnection, deepstreamClientMock);
-        recordEventsListener = mock(RecordEventsListener.class);
-        recordReadyListener = mock(Record.RecordReadyListener.class);
-
-        Thread b = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                record = new Record("recordA", new HashMap(), mockConnection, config, deepstreamClientMock);
-                record.addRecordEventsListener(recordEventsListener);
-                record.start();
-            }
-        });
-        b.start();
-
-        while (record == null) {
-            Thread.sleep(10);
+        try {
+            return new DeepstreamConfig(options);
+        } catch (InvalidDeepstreamConfig invalidDeepstreamConfig) {
+            Assert.fail("Invalid deepstream config in test");
+            return new DeepstreamConfig();
         }
     }
 
@@ -70,20 +69,12 @@ public class RecordTest {
         ExecutorService handleService = Executors.newFixedThreadPool(1);
 
         for (int ii = 0; ii < 10000; ++ii) {
-            recordService.submit(new Runnable() {
-                @Override
-                public void run() {
-                    Record record = recordHandler.getRecord("foo");
-                    Assert.assertFalse(record.isDestroyed());
-                    record.discard();
-                }
+            recordService.submit(() -> {
+                Record record = recordHandler.getRecord("foo");
+                Assert.assertFalse(record.isDestroyed());
+                record.discard();
             });
-            handleService.submit(new Runnable() {
-                @Override
-                public void run() {
-                    recordHandler.handle(MessageParser.parseMessage(TestUtil.formatMessage("R|R|foo|1|{\"bar\":\"baz\"}"), deepstreamClientMock));
-                }
-            });
+            handleService.submit(() -> recordHandler.handle(MessageParser.parseMessage(TestUtil.formatMessage("R|R|foo|1|{\"bar\":\"baz\"}"), deepstreamClientMock)));
         }
 
         recordService.shutdown();

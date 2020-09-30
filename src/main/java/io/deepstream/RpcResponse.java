@@ -8,7 +8,7 @@ import com.google.j2objc.annotations.ObjectiveCName;
  */
 public class RpcResponse {
 
-    private final IConnection connection;
+    private final Connection connection;
     private final String name;
     private final String correlationId;
 
@@ -24,7 +24,7 @@ public class RpcResponse {
      * @param correlationId the correlationId for the RPC
      */
     @ObjectiveCName("init:name:correlationId:")
-    RpcResponse(IConnection connection, String name, String correlationId) {
+    RpcResponse(Connection connection, String name, String correlationId) {
         this.connection = connection;
         this.name = name;
         this.correlationId = correlationId;

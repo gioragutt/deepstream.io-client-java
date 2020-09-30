@@ -1,22 +1,24 @@
 package io.deepstream;
 
-public class MockConnection implements IConnection {
-
-    public String lastSentMessage;
+public class MockConnection implements Connection {
+    public String lastSentMessage = null;
     public ConnectionState state;
 
     public MockConnection() {
-        this.lastSentMessage = null;
-        this.state = ConnectionState.CLOSED;
+        this(ConnectionState.CLOSED);
+    }
+
+    public MockConnection(ConnectionState connectionState) {
+        state = connectionState;
     }
 
     @Override
     public void sendMsg(Topic topic, Actions action, String[] data) {
-        this.lastSentMessage = MessageBuilder.getMsg(topic, action, data);
+        lastSentMessage = MessageBuilder.getMsg(topic, action, data);
     }
 
     @Override
     public void send(String message) {
-        this.lastSentMessage = message;
+        lastSentMessage = message;
     }
 }

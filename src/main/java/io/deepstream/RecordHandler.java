@@ -21,7 +21,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class RecordHandler {
 
     private final DeepstreamConfig deepstreamConfig;
-    private final IConnection connection;
+    private final Connection connection;
     private final AbstractDeepstreamClient client;
     private final ConcurrentHashMap<String, Record> records;
     private final Map<String, List> lists;
@@ -41,7 +41,7 @@ public class RecordHandler {
      * @param client           The deepstream client
      */
     @ObjectiveCName("init:connection:client:")
-    RecordHandler(DeepstreamConfig deepstreamConfig, IConnection connection, AbstractDeepstreamClient client) {
+    RecordHandler(DeepstreamConfig deepstreamConfig, Connection connection, AbstractDeepstreamClient client) {
         this.deepstreamConfig = deepstreamConfig;
         this.connection = connection;
         this.client = client;

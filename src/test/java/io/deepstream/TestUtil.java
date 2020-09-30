@@ -1,5 +1,7 @@
 package io.deepstream;
 
+import org.junit.Assert;
+
 class TestUtil {
 
     private static final char MPS = '\u001f';
@@ -34,5 +36,17 @@ class TestUtil {
             }
             action.run();
         }).start();
+    }
+
+    static void assertLastMessageWas(MockConnection mockConnection, String s) {
+        Assert.assertEquals(
+                formatMessage(s),
+                mockConnection.lastSentMessage);
+    }
+
+    static void assertLastMessageWas(MockEndpoint mockEndpoint, String s) {
+        Assert.assertEquals(
+                s,
+                mockEndpoint.lastSentMessage);
     }
 }

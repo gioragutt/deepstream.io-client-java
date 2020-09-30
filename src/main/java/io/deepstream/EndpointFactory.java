@@ -3,9 +3,8 @@ package io.deepstream;
 import com.google.j2objc.annotations.ObjectiveCName;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 
 interface EndpointFactory {
     @ObjectiveCName("createEndpoint:connection:")
-    Endpoint createEndpoint(URI uri, Connection connection);
+    Endpoint createEndpoint(URI uri, WebSocketConnection connection);
 }

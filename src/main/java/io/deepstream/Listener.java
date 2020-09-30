@@ -11,7 +11,7 @@ class Listener implements ResubscribeNotifier.ResubscribeListener {
     private String pattern;
     private ListenListener listenerCallback;
     private AbstractDeepstreamClient client;
-    private IConnection connection;
+    private Connection connection;
 
     @ObjectiveCName("init:pattern:listenerCallback:deepstreamConfig:client:connection:")
     public Listener(Topic topic,
@@ -19,7 +19,7 @@ class Listener implements ResubscribeNotifier.ResubscribeListener {
                     ListenListener listenerCallback,
                     DeepstreamConfig deepstreamConfig,
                     AbstractDeepstreamClient client,
-                    IConnection connection) {
+                    Connection connection) {
         this.topic = topic;
         this.pattern = pattern;
         this.listenerCallback = listenerCallback;

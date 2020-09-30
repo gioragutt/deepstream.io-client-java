@@ -9,17 +9,16 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 
 class JavaEndpointWebsocket implements Endpoint {
 
     private final URI uri;
-    private final Connection connection;
+    private final WebSocketConnection connection;
     private WebSocket websocket;
 
-    JavaEndpointWebsocket(URI uri, Connection connection) {
+    JavaEndpointWebsocket(URI uri, WebSocketConnection connection) {
         this.uri = uri;
         this.connection = connection;
     }

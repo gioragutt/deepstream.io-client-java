@@ -9,13 +9,13 @@ public class PresenceHandler {
 
     private final EventEmitter<PresenceEventListener> emitter = new EventEmitter<>();
     private final int subscriptionTimeout;
-    private final IConnection connection;
+    private final Connection connection;
     private final AbstractDeepstreamClient client;
     private final AckTimeoutRegistry ackTimeoutRegistry;
     private final SingleNotifier notifier;
 
     PresenceHandler(DeepstreamConfig deepstreamConfig,
-                    IConnection connection,
+                    Connection connection,
                     AbstractDeepstreamClient client) {
         this.subscriptionTimeout = deepstreamConfig.getSubscriptionTimeout();
         this.connection = connection;

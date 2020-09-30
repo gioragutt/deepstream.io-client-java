@@ -23,7 +23,7 @@ public class Record {
     private final ResubscribeNotifier resubscribeNotifier;
     private final SingleNotifier recordSetNotifier;
     private final AckTimeoutRegistry ackTimeoutRegistry;
-    private final IConnection connection;
+    private final Connection connection;
     private final AbstractDeepstreamClient client;
     private final Gson gson;
     private final JsonPath path;
@@ -57,7 +57,7 @@ public class Record {
     @ObjectiveCName("init:recordOptions:connection:deepstreamConfig:client:")
     Record(String name,
            Map<?, ?> recordOptions,
-           IConnection connection,
+           Connection connection,
            DeepstreamConfig deepstreamConfig,
            AbstractDeepstreamClient client) {
         this.name = name;
